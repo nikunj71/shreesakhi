@@ -23,6 +23,7 @@ export function OutfitPhotoCarousel({
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState<number>(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
   const isHorizontalSwipe = useRef(false);
 
   const safeImages = images && images.length > 0 
@@ -122,13 +123,25 @@ export function OutfitPhotoCarousel({
         {safeImages.map((img, idx) => (
           <div
             key={idx}
-            className="relative w-full h-full flex-shrink-0 cursor-pointer overflow-hidden"
+            className="relative w-full h-full flex-shrink-0 cursor-pointer overflow-hidden bg-stone-100 dark:bg-[#041A17]"
             onClick={() => handleImageClick(img)}
           >
+            {/* Elegant Luxury Shimmer Placeholder while high-res Cloudinary image downloads */}
+            {!loadedImages[idx] && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-100 dark:bg-[#041A17] select-none">
+                <div className="w-8 h-8 rounded-full border-2 border-[#DFBD76]/30 border-t-[#DFBD76] animate-spin mb-2" />
+                <span className="text-[10px] font-serif font-bold tracking-widest text-[#084C42] dark:text-[#DFBD76] opacity-60">
+                  SHREE SAKHI
+                </span>
+              </div>
+            )}
             <img
               src={img}
               alt={`${title} - Angle ${idx + 1}`}
-              className="w-full h-full object-cover object-top pointer-events-none transition-transform duration-500 group-hover:scale-105"
+              onLoad={() => setLoadedImages((prev) => ({ ...prev, [idx]: true }))}
+              className={`w-full h-full object-cover object-top pointer-events-none transition-all duration-500 group-hover:scale-105 ${
+                loadedImages[idx] ? 'opacity-100' : 'opacity-0'
+              }`}
               loading={idx === 0 ? 'eager' : 'lazy'}
               draggable={false}
             />

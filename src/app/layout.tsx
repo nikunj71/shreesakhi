@@ -41,7 +41,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${syne.variable} ${dmSans.variable}`} suppressHydrationWarning>
-      <body className="min-h-screen bg-[#FAF8F5] text-[#1C1917] dark:bg-[#041A17] dark:text-[#FAF6EC] antialiased selection:bg-[#DFBD76] selection:text-[#041A17] transition-colors duration-200">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var saved = localStorage.getItem('shreesakhi_theme');
+                  if (saved === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.style.colorScheme = 'dark';
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.style.colorScheme = 'light';
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-[#FAF8F5] text-[#1C1917] dark:bg-[#041A17] dark:text-[#FAF6EC] antialiased selection:bg-[#DFBD76] selection:text-[#041A17]">
         <ClientProvider>
           {children}
         </ClientProvider>

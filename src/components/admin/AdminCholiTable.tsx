@@ -38,6 +38,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import { APP_CONFIG } from '@/constants';
 import { toast } from 'sonner';
 import { OutfitPhotoCarousel } from '@/components/showroom/OutfitPhotoCarousel';
+import { CholiGridSkeleton } from '@/components/common/BoutiqueLoader';
 import { openInstagram } from '@/lib/instagram';
 
 interface AdminCholiTableProps {
@@ -58,6 +59,7 @@ const CATEGORIES: (CholiCategory | 'All')[] = [
 export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToShowroom }: AdminCholiTableProps) {
   const dispatch = useAppDispatch();
   const cholis = useAppSelector((state) => state.cholis.items);
+  const cholisLoading = useAppSelector((state) => state.cholis.loading);
   const bookings = useAppSelector((state) => state.bookings.items);
   const { currentUser } = useAppSelector((state) => state.auth);
 
@@ -449,7 +451,18 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EADFC9]/60 dark:divide-[#1A3E38] text-xs">
-                {filteredCholis.length === 0 ? (
+                {cholisLoading && cholis.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-16 text-center">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="w-8 h-8 rounded-full border-2 border-[#DFBD76] border-t-transparent animate-spin" />
+                        <span className="font-serif text-sm font-bold text-[#084C42] dark:text-[#DFBD76]">
+                          Loading Choli Master Register from Vault...
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredCholis.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center text-[#78716C] dark:text-[#9CA3AF]">
                       No cholis match your filter criteria.
@@ -701,7 +714,9 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
       ) : (
         /* Mode 2: Dedicated Admin Card Grid (Shows All Confidential Details) */
         <div className="space-y-6">
-          {filteredCholis.length === 0 ? (
+          {cholisLoading && cholis.length === 0 ? (
+            <CholiGridSkeleton />
+          ) : filteredCholis.length === 0 ? (
             <div className="text-center py-16 bg-white dark:bg-[#072622] rounded-3xl border border-dashed border-[#EADFC9] dark:border-[#1A3E38] p-6 space-y-2">
               <CalendarIcon className="w-8 h-8 text-[#DFBD76] mx-auto opacity-50" />
               <p className="font-serif text-lg text-[#1C1917] dark:text-[#FAF6EC]">

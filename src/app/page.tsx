@@ -18,6 +18,7 @@ import { BookingModal } from '@/components/booking/BookingModal';
 import { AddCholiModal } from '@/components/admin/AddCholiModal';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+import { BoutiquePageLoader } from '@/components/common/BoutiqueLoader';
 import { Heart, Sun, Moon, PlusCircle, LogOut, User as UserIcon, ChevronDown, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -68,8 +69,13 @@ export default function Home() {
     setActiveTab('calendar');
   };
 
+  // Show luxury boutique loader until client hydration completes
+  if (!mounted) {
+    return <BoutiquePageLoader message="Opening Shree Sakhi Choli Vault..." />;
+  }
+
   // RENDER FOR ADMIN (DESKTOP SIDEBAR WHEN LAPTOP MODE + ALL BOTTOM OPTIONS IN MOBILE VIEW)
-  if (mounted && isAdmin) {
+  if (isAdmin) {
     return (
       <div className="flex min-h-screen bg-[#FAF8F5] dark:bg-[#041A17] text-[#1C1917] dark:text-[#F5F5F7] transition-colors">
         {/* Left Desktop Sidebar: strictly for laptop/desktop mode (md:flex) */}

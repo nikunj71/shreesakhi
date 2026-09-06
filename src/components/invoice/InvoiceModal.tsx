@@ -25,6 +25,18 @@ interface InvoiceModalProps {
 export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalProps) {
   const invoiceRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !booking) return null;
 
   const invoiceNumber = `INV-${booking.bookingNumber.replace('BK-', '')}`;
@@ -54,18 +66,6 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
     );
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
   };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   return (
     <div 

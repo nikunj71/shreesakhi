@@ -16,6 +16,7 @@ import { OutfitPhotoCarousel } from '@/components/showroom/OutfitPhotoCarousel';
 import { DateCheckModal } from '@/components/showroom/DateCheckModal';
 import { CholiQrModal } from '@/components/choli/CholiQrModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+import { CholiGridSkeleton } from '@/components/common/BoutiqueLoader';
 import { CholiCategory, Choli } from '@/types';
 import { 
   Search, 
@@ -257,12 +258,7 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
 
       {/* Grid of Cholis with Multi-Photo Carousels & Instant Date Status */}
       {loading && items.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] p-6 space-y-3">
-          <div className="w-10 h-10 rounded-full border-3 border-[#DFBD76] border-t-transparent animate-spin mx-auto" />
-          <p className="font-serif text-base font-bold text-[#084C42] dark:text-[#DFBD76]">
-            Loading Shree Sakhi Choli Collection...
-          </p>
-        </div>
+        <CholiGridSkeleton />
       ) : filteredItems.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-[#072622] rounded-3xl border border-dashed border-[#EADFC9] dark:border-[#1A3E38] p-6 space-y-2">
           <CalendarIcon className="w-8 h-8 text-[#DFBD76] mx-auto opacity-50" />

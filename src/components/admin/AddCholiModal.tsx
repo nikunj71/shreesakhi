@@ -143,7 +143,7 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
       totalEarnedFromRent: 0,
       isBreakEvenReached: false,
       status: 'AVAILABLE',
-      description: description || 'Haute couture bridal choli masterpiece handcrafted with intricate heritage embroidery.',
+      description: description || 'Shree Sakhi couture bridal choli masterpiece handcrafted with intricate heritage embroidery.',
       bufferDaysBefore: 1,
       bufferDaysAfter: 2,
       instagramUrl: instagramUrl.trim() || undefined,

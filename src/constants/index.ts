@@ -3,7 +3,7 @@ import { CholiCategory, CholiStatus } from '@/types';
 export const APP_CONFIG = {
   BRAND_NAME: 'Shree Sakhi',
   FULL_TITLE: 'Shree Sakhi Choli Collection',
-  TAGLINE: 'Exclusive Designer Cholis & Haute Couture on Rent',
+  TAGLINE: 'Designer Cholis on Rent',
   CURRENCY: '₹',
   LOCATION: 'Bandra West, Mumbai & Satellite, Ahmedabad',
   PHONE: '+91 98200 11223',

@@ -193,6 +193,62 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
     setSelectedImageIdx((prev) => (prev === safeImages.length - 1 ? 0 : prev + 1));
   };
 
+  // Mobile Touch Swipe Handlers for Detail Page Featured Image
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (safeImages.length <= 1) return;
+    setTouchStartX(e.touches[0].clientX);
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null || safeImages.length <= 1) return;
+    const diffX = e.changedTouches[0].clientX - touchStartX;
+    const diffY = e.changedTouches[0].clientY - touchStartY;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      if (diffX < 0) {
+        // Slid right-to-left -> Next Photo
+        handleNextImage();
+      } else {
+        // Slid left-to-right -> Previous Photo
+        handlePrevImage();
+      }
+    }
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
+  // Fullscreen Lightbox Touch Handlers
+  const [lbTouchStartX, setLbTouchStartX] = useState<number | null>(null);
+  const [lbTouchStartY, setLbTouchStartY] = useState<number | null>(null);
+
+  const handleLbTouchStart = (e: React.TouchEvent) => {
+    if (safeImages.length <= 1) return;
+    setLbTouchStartX(e.touches[0].clientX);
+    setLbTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleLbTouchEnd = (e: React.TouchEvent) => {
+    if (lbTouchStartX === null || lbTouchStartY === null || safeImages.length <= 1) return;
+    const diffX = e.changedTouches[0].clientX - lbTouchStartX;
+    const diffY = e.changedTouches[0].clientY - lbTouchStartY;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      if (diffX < 0) {
+        // Slid right-to-left -> Next Photo
+        setLightboxImageIdx((prev) => (prev === null ? 0 : (prev + 1) % safeImages.length));
+      } else {
+        // Slid left-to-right -> Previous Photo
+        setLightboxImageIdx((prev) => (prev === null ? 0 : (prev === 0 ? safeImages.length - 1 : prev - 1)));
+      }
+    }
+    setLbTouchStartX(null);
+    setLbTouchStartY(null);
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#041A17] text-[#1C1917] dark:text-[#F5F5F7] transition-colors pb-20">
       
@@ -243,9 +299,13 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
           {/* Left Column: Interactive Featured Photo Viewer & Thumbnails (7 Cols) */}
           <div className="lg:col-span-7 space-y-4">
             
-            {/* Main Featured Photo Box */}
+            {/* Main Featured Photo Box with Touch Swipe Support */}
             <div className="bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] overflow-hidden shadow-lg p-2 sm:p-3 relative group">
-              <div className="relative aspect-[3/4] max-h-[560px] w-full rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-900">
+              <div 
+                className="relative aspect-[3/4] max-h-[560px] w-full rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-900 select-none touch-pan-y"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+              >
                 <img
                   src={safeImages[selectedImageIdx]}
                   alt={`${choli.name} - ${ANGLE_LABELS[selectedImageIdx] || 'Angle'}`}
@@ -781,10 +841,12 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
             </div>
           </div>
 
-          {/* Center Main High-Res Lightbox Image */}
+          {/* Center Main High-Res Lightbox Image with Touch Gesture Navigation */}
           <div 
-            className="relative flex-1 flex items-center justify-center py-2 max-w-5xl w-full mx-auto"
+            className="relative flex-1 flex items-center justify-center py-2 max-w-5xl w-full mx-auto select-none touch-pan-y"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleLbTouchStart}
+            onTouchEnd={handleLbTouchEnd}
           >
             <img
               src={safeImages[lightboxImageIdx]}

@@ -110,9 +110,6 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
                   <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[#084C42] dark:text-[#DFBD76] print:text-[#084C42]">
                     श्री SAKHI BOUTIQUE
                   </h1>
-                  <p className="text-[10px] tracking-widest uppercase font-semibold text-[#DFBD76] mt-0.5">
-                    Haute Couture Bridal & Choli Rentals
-                  </p>
                 </div>
               </div>
               <p className="text-xs text-[#78716C] dark:text-[#9BB5AF] print:text-stone-600 mt-2 max-w-xs leading-relaxed">

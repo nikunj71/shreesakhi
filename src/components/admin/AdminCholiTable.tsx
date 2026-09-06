@@ -37,6 +37,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import { APP_CONFIG } from '@/constants';
 import { toast } from 'sonner';
+import { OutfitPhotoCarousel } from '@/components/showroom/OutfitPhotoCarousel';
 
 interface AdminCholiTableProps {
   onCheckCalendar?: (choliId: string) => void;
@@ -70,6 +71,32 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
   const [choliToDelete, setCholiToDelete] = useState<Choli | null>(null);
   const [previewCholi, setPreviewCholi] = useState<Choli | null>(null);
   const [selectedPreviewImageIdx, setSelectedPreviewImageIdx] = useState(0);
+  const [modalTouchStartX, setModalTouchStartX] = useState<number | null>(null);
+  const [modalTouchStartY, setModalTouchStartY] = useState<number | null>(null);
+
+  const handleModalTouchStart = (e: React.TouchEvent) => {
+    if (!previewCholi || previewCholi.images.length <= 1) return;
+    setModalTouchStartX(e.touches[0].clientX);
+    setModalTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleModalTouchEnd = (e: React.TouchEvent) => {
+    if (modalTouchStartX === null || modalTouchStartY === null || !previewCholi || previewCholi.images.length <= 1) return;
+    const diffX = e.changedTouches[0].clientX - modalTouchStartX;
+    const diffY = e.changedTouches[0].clientY - modalTouchStartY;
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      if (diffX < 0) {
+        // Slide right-to-left -> Next photo
+        setSelectedPreviewImageIdx((prev) => (prev === previewCholi.images.length - 1 ? 0 : prev + 1));
+      } else {
+        // Slide left-to-right -> Prev photo
+        setSelectedPreviewImageIdx((prev) => (prev === 0 ? previewCholi.images.length - 1 : prev - 1));
+      }
+    }
+    setModalTouchStartX(null);
+    setModalTouchStartY(null);
+  };
 
   // Helper to check SKU availability for a specific date or today
   const getCholiAvailability = (choli: Choli, targetDate?: string) => {
@@ -712,21 +739,22 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                     className="bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-sm hover:shadow-xl hover:border-[#DFBD76]/50 transition-all overflow-hidden flex flex-col justify-between"
                   >
                     <div>
-                      {/* Card Top: Image + Badges */}
-                      <div className="relative aspect-[4/3] bg-stone-100 dark:bg-stone-900 overflow-hidden group">
-                        <img 
-                          src={c.images[0] || '/logo.jpg'} 
-                          alt={c.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                          onClick={() => {
+                      {/* Card Top: Multi-Photo Carousel + Badges */}
+                      <div className="relative overflow-hidden group">
+                        <OutfitPhotoCarousel
+                          images={c.images}
+                          title={c.name}
+                          sku={c.sku}
+                          aspectRatio="aspect-[4/3]"
+                          onOpenLightbox={(imgUrl) => {
                             setPreviewCholi(c);
-                            setSelectedPreviewImageIdx(0);
+                            const idx = c.images.indexOf(imgUrl);
+                            setSelectedPreviewImageIdx(idx !== -1 ? idx : 0);
                           }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
 
                         {/* Top Badges */}
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10 pointer-events-none">
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#084C42] text-[#FAF6EC] border border-[#DFBD76]/50 shadow-md">
                             {c.sku}
                           </span>
@@ -735,24 +763,8 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                           </span>
                         </div>
 
-                        {/* Multi-Photo Indicator */}
-                        {c.images.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPreviewCholi(c);
-                              setSelectedPreviewImageIdx(0);
-                            }}
-                            className="absolute top-3 right-3 px-2 py-1 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md text-[10px] font-bold flex items-center gap-1 border border-white/20 transition-all z-10"
-                            title="View all photos"
-                          >
-                            <Images className="w-3 h-3 text-[#DFBD76]" />
-                            <span>{c.images.length} Photos</span>
-                          </button>
-                        )}
-
                         {/* Bottom Identity in Image */}
-                        <div className="absolute bottom-3 left-3 right-3 z-10">
+                        <div className="absolute bottom-8 left-3 right-3 z-10 pointer-events-none">
                           <h3 className="font-serif font-bold text-base text-white line-clamp-1 drop-shadow-md">
                             {c.name}
                           </h3>
@@ -1037,13 +1049,25 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
               </button>
             </div>
 
-            {/* Main Preview Image */}
-            <div className="relative aspect-[3/4] max-h-[380px] w-full rounded-2xl overflow-hidden bg-black/5 border border-[#EADFC9] dark:border-[#1A3E38]">
+            {/* Main Preview Image with Touch Swipe Support */}
+            <div 
+              className="relative aspect-[3/4] max-h-[380px] w-full rounded-2xl overflow-hidden bg-black/5 border border-[#EADFC9] dark:border-[#1A3E38] select-none touch-pan-y"
+              onTouchStart={handleModalTouchStart}
+              onTouchEnd={handleModalTouchEnd}
+            >
               <img
                 src={previewCholi.images[selectedPreviewImageIdx] || '/logo.jpg'}
                 alt={previewCholi.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover pointer-events-none"
+                draggable={false}
               />
+
+              {/* Photo Counter Pill */}
+              {previewCholi.images.length > 1 && (
+                <div className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/60 text-[#DFBD76] backdrop-blur-md border border-[#DFBD76]/30">
+                  {selectedPreviewImageIdx + 1} / {previewCholi.images.length}
+                </div>
+              )}
             </div>
 
             {/* Thumbnail Strip */}

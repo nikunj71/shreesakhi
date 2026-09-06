@@ -20,16 +20,16 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
-import { 
-  Sparkles, 
-  Moon, 
-  Sun, 
-  ShieldCheck, 
-  BadgeCheck, 
-  FileSpreadsheet, 
-  PlusCircle, 
-  Calendar as CalendarIcon, 
-  ShoppingBag, 
+import {
+  Sparkles,
+  Moon,
+  Sun,
+  ShieldCheck,
+  BadgeCheck,
+  FileSpreadsheet,
+  PlusCircle,
+  Calendar as CalendarIcon,
+  ShoppingBag,
   BarChart3,
   Lock,
   LogOut,
@@ -78,15 +78,15 @@ export function Navbar({ activeTab, setActiveTab, onOpenAddModal }: NavbarProps)
     <AppBar position="sticky" elevation={0} sx={{ display: { xs: 'none', md: 'block' } }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters sx={{ height: { xs: 68, sm: 76 }, justifyContent: 'space-between' }}>
-          
+
           {/* Brand Logo with Official Boutique Artwork */}
-          <Box 
+          <Box
             onClick={() => setActiveTab('showroom')}
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1.5, 
-              cursor: 'pointer', 
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              cursor: 'pointer',
               userSelect: 'none',
               transition: 'transform 0.15s ease',
               '&:hover': { transform: 'scale(1.02)' },
@@ -120,9 +120,9 @@ export function Navbar({ activeTab, setActiveTab, onOpenAddModal }: NavbarProps)
             </Box>
             <Box sx={{ display: { xs: 'none', lg: 'block' }, borderLeft: isDark ? '1px solid rgba(223, 189, 118, 0.25)' : '1px solid rgba(8, 76, 66, 0.2)', pl: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Typography 
+                <Typography
                   variant="caption"
-                  sx={{ 
+                  sx={{
                     fontFamily: "var(--font-syne), 'Syne', sans-serif",
                     letterSpacing: '0.14em',
                     textTransform: 'uppercase',
@@ -132,13 +132,13 @@ export function Navbar({ activeTab, setActiveTab, onOpenAddModal }: NavbarProps)
                     lineHeight: 1.1,
                   }}
                 >
-                  Haute Couture
+                  Shree Sakhi
                 </Typography>
                 <Sparkles style={{ width: 12, height: 12, color: '#DFBD76' }} />
               </Box>
-              <Typography 
-                variant="caption" 
-                sx={{ 
+              <Typography
+                variant="caption"
+                sx={{
                   display: 'block',
                   letterSpacing: '0.04em',
                   fontSize: '0.625rem',
@@ -378,7 +378,7 @@ export function Navbar({ activeTab, setActiveTab, onOpenAddModal }: NavbarProps)
                           height: 18,
                           fontSize: '0.625rem',
                           fontWeight: 800,
-                          bgcolor: currentUser.role === 'ADMIN' 
+                          bgcolor: currentUser.role === 'ADMIN'
                             ? isDark ? 'rgba(223, 189, 118, 0.2)' : 'rgba(8, 76, 66, 0.1)'
                             : isDark ? 'rgba(34, 197, 94, 0.15)' : 'rgba(21, 128, 61, 0.1)',
                           color: currentUser.role === 'ADMIN' ? (isDark ? '#DFBD76' : '#084C42') : '#15803D',

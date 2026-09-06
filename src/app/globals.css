@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #FAF7F2;
+    --foreground: #1A1615;
+    --card: #FFFFFF;
+    --card-foreground: #1A1615;
+    --border: #E8DCC4;
+    --primary: #084C42;
+    --primary-hover: #063A32;
+    --gold: #DFBD76;
+    --gold-hover: #C5A059;
+    --muted: #736C66;
+    --muted-bg: #F4EFE6;
+    --gold-accent: #DFBD76;
+    --gold-glow: rgba(223, 189, 118, 0.25);
+  }
+
+  .dark {
+    --background: #041A17;
+    --foreground: #FAF6EC;
+    --card: #072622;
+    --card-foreground: #FAF6EC;
+    --border: #1A3E38;
+    --primary: #DFBD76;
+    --primary-hover: #EBD295;
+    --muted: #9E9891;
+    --muted-bg: #0A2E28;
+    --gold-accent: #DFBD76;
+    --gold-glow: rgba(223, 189, 118, 0.2);
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.01em;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+h1, h2, h3, h4, h5, h6, .font-serif, .font-syne {
+  font-family: var(--font-syne), 'Syne', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.font-sans, .font-dm-sans {
+  font-family: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Haute Couture Designer Card Effects */
+.luxury-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px -2px rgba(28, 25, 23, 0.05), 0 2px 6px -1px rgba(28, 25, 23, 0.02);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.luxury-card:hover {
+  border-color: var(--gold-accent);
+  box-shadow: 0 20px 35px -5px rgba(107, 23, 32, 0.08), 0 0 20px rgba(212, 175, 55, 0.15);
+  transform: translateY(-3px);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #DFBD76 0%, #C5A059 50%, #9E782F 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.maroon-gradient-bg {
+  background: linear-gradient(135deg, #6B1720 0%, #4A0E15 50%, #1A1615 100%);
+}
+
+.gold-border-glow {
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+}
+
+/* Custom luxury scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C5A05940;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C5A05990;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Booking, Choli } from '@/types';
 import { 
   Printer, 
@@ -55,49 +55,76 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static">
-      <div className="relative w-full max-w-3xl bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-6 print:border-none print:shadow-none print:my-0 print:rounded-none print:w-full">
+    <div 
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static select-none sm:select-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="relative w-full max-w-3xl bg-white dark:bg-[#072622] rounded-2xl sm:rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-2 sm:my-6 max-h-[96vh] sm:max-h-[92vh] flex flex-col print:border-none print:shadow-none print:my-0 print:rounded-none print:w-full print:max-h-none print:overflow-visible print:block"
+        onClick={(e) => e.stopPropagation()}
+      >
         
-        {/* Modal Action Bar (Hidden during print) */}
-        <div className="print:hidden bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-4 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-serif font-bold text-base text-[#DFBD76]">
-              Tax Invoice & Rental Contract
+        {/* Sticky Modal Top Action Bar (Always visible while scrolling, hidden during print) */}
+        <div className="sticky top-0 z-30 flex-shrink-0 bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] px-3.5 py-3 sm:px-5 sm:py-3.5 text-white flex items-center justify-between border-b border-white/10 shadow-md">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 pr-2">
+            <span className="font-serif font-bold text-sm sm:text-base text-[#DFBD76] truncate">
+              Tax Invoice
             </span>
-            <span className="text-xs text-stone-300">({invoiceNumber})</span>
+            <span className="text-[10px] sm:text-xs text-stone-300 font-mono font-semibold truncate">
+              ({invoiceNumber})
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
+              type="button"
               onClick={handlePrint}
-              className="py-1.5 px-3 rounded-xl bg-[#DFBD76] hover:bg-[#C5A059] text-stone-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+              className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-[#DFBD76] hover:bg-[#C5A059] text-stone-950 font-bold text-xs flex items-center gap-1 transition-all shadow-sm active:scale-95"
               title="Print or Save as PDF"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print / PDF</span>
+              <span className="hidden sm:inline">Print / PDF</span>
             </button>
 
             <button
+              type="button"
               onClick={handleWhatsAppShare}
-              className="py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all"
+              className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 transition-all active:scale-95"
               title="Send to Customer WhatsApp"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Send WhatsApp</span>
+              <span className="hidden sm:inline">WhatsApp</span>
             </button>
 
+            {/* Close Button - High Contrast, Always Visible on Mobile */}
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all ml-1"
+              className="py-1.5 px-3 sm:p-2 rounded-xl sm:rounded-full bg-white/20 hover:bg-white/30 text-white transition-all flex items-center gap-1.5 active:scale-90 border border-white/25 shadow-sm"
+              title="Close Invoice (Esc)"
+              aria-label="Close Invoice"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 text-white" />
+              <span className="text-xs font-bold sm:hidden">Close</span>
             </button>
           </div>
         </div>
 
-        {/* Printable Invoice Container */}
-        <div ref={invoiceRef} className="p-6 sm:p-10 text-[#1C1917] dark:text-[#FAF6EC] print:text-black print:p-8 space-y-6">
+        {/* Printable Invoice Container (Scrollable on screen, full on print) */}
+        <div ref={invoiceRef} className="flex-1 overflow-y-auto p-4 sm:p-10 text-[#1C1917] dark:text-[#FAF6EC] print:text-black print:p-8 print:overflow-visible print:h-auto space-y-6">
           
           {/* Invoice Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-[#EADFC9] dark:border-[#1A3E38] print:border-stone-300">
@@ -302,6 +329,30 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
             </div>
           </div>
 
+        </div>
+
+        {/* Bottom Action Footer for Mobile & Desktop (Hidden during print) */}
+        <div className="print:hidden p-3 sm:p-4 bg-[#FAF8F5] dark:bg-[#041A17] border-t border-[#EADFC9] dark:border-[#1A3E38] flex flex-col sm:flex-row items-center justify-between gap-2.5 flex-shrink-0">
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 hidden sm:block">
+            Press <kbd className="px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-800 text-[10px] font-mono">ESC</kbd> or click outside to dismiss
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 sm:flex-initial py-2.5 px-5 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] hover:bg-stone-200 dark:hover:bg-[#0A2E28] text-stone-700 dark:text-stone-200 text-xs font-bold transition-all text-center active:scale-95"
+            >
+              Close Invoice
+            </button>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="flex-1 sm:flex-initial py-2.5 px-4 rounded-xl bg-[#084C42] hover:bg-[#0D5C51] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print / PDF</span>
+            </button>
+          </div>
         </div>
 
       </div>

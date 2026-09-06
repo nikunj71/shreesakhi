@@ -9,9 +9,9 @@ export async function POST() {
     const inserted = await resetAndSeedDatabase();
     return NextResponse.json({
       success: true,
-      message: `Database successfully wiped and seeded with ${inserted.length} authentic cholis (all rent < ₹2,000).`,
-      count: inserted.length,
-      data: inserted,
+      message: 'Database successfully cleared. Dummy data removed.',
+      count: 0,
+      data: [],
     });
   } catch (error: any) {
     return NextResponse.json(

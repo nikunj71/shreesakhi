@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/dbConnect';
 import Choli from '@/models/Choli';
-import { SEED_CHOLIS } from '@/lib/seedDatabase';
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const role = searchParams.get('role') || 'ADMIN';
@@ -12,14 +10,9 @@ export async function GET(request: Request) {
     let cholis: any[] = [];
 
     if (conn) {
-      cholis = await Choli.find({}).sort({ sku: 1 }).lean();
-      if (!cholis || cholis.length === 0) {
-        // Auto-seed with the 5 authentic cholis (rent < 2000)
-        await Choli.insertMany(SEED_CHOLIS);
-        cholis = await Choli.find({}).sort({ sku: 1 }).lean();
-      }
+      cholis = (await Choli.find({}).sort({ sku: 1 }).lean()) || [];
     } else {
-      cholis = SEED_CHOLIS;
+      cholis = [];
     }
 
     // Role-based security: if Staff or Guest, mask confidential initial costing

@@ -18,9 +18,12 @@ function Initializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    // 1. Purge legacy auto-admin session if exists
+    // 1. Purge legacy dummy data from localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('shreesakhi_current_user_v2');
+      localStorage.removeItem('shreesakhi_cholis_v3');
+      localStorage.removeItem('shreesakhi_bookings_v3');
+      localStorage.removeItem('shreesakhi_users_v2');
     }
 
     // 2. Hydrate Cholis, Bookings, and Users from storage/demo

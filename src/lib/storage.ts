@@ -1,9 +1,9 @@
 import { Choli, Booking, UserProfile } from '@/types';
 import { INITIAL_USERS } from './demoData';
 
-const CHOLIS_KEY = 'shreesakhi_cholis_v3';
-const BOOKINGS_KEY = 'shreesakhi_bookings_v3';
-const USERS_KEY = 'shreesakhi_users_v2';
+const CHOLIS_KEY = 'shreesakhi_cholis_v4';
+const BOOKINGS_KEY = 'shreesakhi_bookings_v4';
+const USERS_KEY = 'shreesakhi_users_v3';
 const CURRENT_USER_KEY = 'shreesakhi_session_v3';
 
 export function getStoredCholis(): Choli[] {

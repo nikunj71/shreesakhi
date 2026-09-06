@@ -38,6 +38,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import { APP_CONFIG } from '@/constants';
 import { toast } from 'sonner';
 import { OutfitPhotoCarousel } from '@/components/showroom/OutfitPhotoCarousel';
+import { openInstagram } from '@/lib/instagram';
 
 interface AdminCholiTableProps {
   onCheckCalendar?: (choliId: string) => void;
@@ -666,18 +667,18 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                               <QrCode className="w-4 h-4" />
                             </button>
 
-                            {/* Copy Instagram Link */}
-                            <button
-                              onClick={() => {
-                                const url = c.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE;
-                                navigator.clipboard?.writeText(url);
-                                toast.success('Instagram post URL copied to clipboard!', { description: url });
-                              }}
-                              className="p-1.5 rounded-lg border border-[#EADFC9] dark:border-[#1A3E38] hover:border-pink-500 bg-[#FAF8F5] dark:bg-[#041A17] text-pink-600 dark:text-pink-400 transition-all flex items-center justify-center"
-                              title="Copy Instagram Post / Reel URL"
+                            {/* Open in Instagram App */}
+                            <a
+                              href={c.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => openInstagram(c.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE, e)}
+                              className="p-1.5 rounded-lg border border-[#EADFC9] dark:border-[#1A3E38] hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-950/30 bg-[#FAF8F5] dark:bg-[#041A17] text-pink-600 dark:text-pink-400 transition-all flex items-center justify-center"
+                              title="Open in Instagram App"
+                              aria-label="Open in Instagram App"
                             >
                               <InstagramIcon sx={{ fontSize: 16 }} />
-                            </button>
+                            </a>
 
                             {/* Delete Choli */}
                             <button
@@ -926,17 +927,17 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                         >
                           <CalendarIcon className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => {
-                            const url = c.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE;
-                            navigator.clipboard?.writeText(url);
-                            toast.success('Instagram post URL copied to clipboard!', { description: url });
-                          }}
-                          className="p-2 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] text-pink-600 dark:text-pink-400 hover:border-pink-500 transition-all shadow-sm flex items-center justify-center"
-                          title="Copy Instagram Post / Reel URL"
+                        <a
+                          href={c.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => openInstagram(c.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE, e)}
+                          className="p-2 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] text-pink-600 dark:text-pink-400 hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-950/30 transition-all shadow-sm flex items-center justify-center"
+                          title="Open in Instagram App"
+                          aria-label="Open in Instagram App"
                         >
                           <InstagramIcon sx={{ fontSize: 14 }} />
-                        </button>
+                        </a>
                         <a
                           href={`/choli/${c._id}`}
                           target="_blank"

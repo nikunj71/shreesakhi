@@ -47,6 +47,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import { APP_CONFIG } from '@/constants';
 import { toast } from 'sonner';
+import { openInstagram } from '@/lib/instagram';
 
 interface ShowroomGalleryProps {
   onCheckCalendar: (choliId: string) => void;
@@ -439,18 +440,18 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
                       <QrCode className="w-4 h-4" />
                     </button>
 
-                    {/* Copy Instagram Post / Reel URL */}
-                    <button
-                      onClick={() => {
-                        const url = choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE;
-                        navigator.clipboard?.writeText(url);
-                        toast.success('Instagram post URL copied to clipboard!', { description: url });
-                      }}
-                      className="p-2.5 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] hover:border-pink-500 bg-[#FAF8F5] dark:bg-[#0A2E28] text-pink-600 dark:text-pink-400 transition-all flex items-center justify-center"
-                      title="Copy Instagram Post / Reel URL"
+                    {/* Open in Instagram App */}
+                    <a
+                      href={choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => openInstagram(choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE, e)}
+                      className="p-2.5 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-950/30 bg-[#FAF8F5] dark:bg-[#0A2E28] text-pink-600 dark:text-pink-400 transition-all flex items-center justify-center"
+                      title="Open in Instagram App"
+                      aria-label="Open in Instagram App"
                     >
                       <InstagramIcon sx={{ fontSize: 16 }} />
-                    </button>
+                    </a>
 
                     <button
                       onClick={() => handleCopyLink(choli)}

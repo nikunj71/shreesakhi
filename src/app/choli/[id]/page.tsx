@@ -40,6 +40,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import { APP_CONFIG } from '@/constants';
 import { toast } from 'sonner';
+import { openInstagram } from '@/lib/instagram';
 
 interface CholiPageProps {
   params: Promise<{ id: string }>;
@@ -413,17 +414,17 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
                   ✨ Authentic Designer Atelier
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => {
-                      const url = choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE;
-                      navigator.clipboard?.writeText(url);
-                      toast.success('Instagram post URL copied to clipboard!', { description: url });
-                    }}
-                    className="p-1.5 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] hover:border-pink-500 bg-[#FAF8F5] dark:bg-[#041A17] text-pink-600 dark:text-pink-400 transition-colors flex items-center justify-center"
-                    title="Copy Instagram Post / Reel URL"
+                  <a
+                    href={choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => openInstagram(choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE, e)}
+                    className="p-1.5 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-950/30 bg-[#FAF8F5] dark:bg-[#041A17] text-pink-600 dark:text-pink-400 transition-colors flex items-center justify-center"
+                    title="Open in Instagram App"
+                    aria-label="Open in Instagram App"
                   >
                     <InstagramIcon sx={{ fontSize: 16 }} />
-                  </button>
+                  </a>
                   <button
                     onClick={handleShare}
                     className="p-1.5 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] hover:bg-[#FAF8F5] dark:hover:bg-[#041A17] text-stone-500 hover:text-[#084C42] dark:hover:text-[#DFBD76] transition-colors"
@@ -662,15 +663,15 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
                   </Button>
                 </div>
 
-                {/* Dedicated Copy Instagram Post URL Button */}
+                {/* Dedicated Open in Instagram App Button */}
                 <Button
                   fullWidth
                   variant="outlined"
-                  onClick={() => {
-                    const url = choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE;
-                    navigator.clipboard?.writeText(url);
-                    toast.success('Instagram post URL copied to clipboard!', { description: url });
-                  }}
+                  component="a"
+                  href={choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e: React.MouseEvent) => openInstagram(choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE, e)}
                   startIcon={<InstagramIcon sx={{ fontSize: 18, color: '#E1306C' }} />}
                   sx={{
                     borderRadius: '14px',
@@ -686,7 +687,7 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
                     },
                   }}
                 >
-                  Copy Instagram Post URL
+                  Open in Instagram App
                 </Button>
               </div>
 

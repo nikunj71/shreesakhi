@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { closeAuthModal, loginUser, registerStaff, logoutUser } from '@/store/authSlice';
+import { closeAuthModal, loginUserApi, registerStaffApi, logoutUser } from '@/store/authSlice';
 import { 
   X, 
   Sparkles, 
@@ -15,14 +15,15 @@ import {
   ArrowRight,
   UserPlus,
   LogIn,
-  LogOut
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Button from '@mui/material/Button';
 
 export function AuthModal() {
   const dispatch = useAppDispatch();
-  const { isAuthModalOpen, registeredUsers, currentUser } = useAppSelector(
+  const { isAuthModalOpen, currentUser, loading } = useAppSelector(
     (state) => state.auth
   );
 
@@ -41,62 +42,58 @@ export function AuthModal() {
 
   if (!isAuthModalOpen) return null;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = registeredUsers.find(
-      (u) => u.email.toLowerCase() === loginEmail.trim().toLowerCase()
-    );
-
-    if (!user) {
-      toast.error('Invalid email or password.');
+    if (!loginEmail.trim() || !loginPassword) {
+      toast.error('Please enter both email and password.');
       return;
     }
 
-    if (user.password && loginPassword !== user.password) {
-      toast.error('Invalid email or password.');
-      return;
-    }
+    try {
+      const user = await dispatch(
+        loginUserApi({ email: loginEmail.trim(), password: loginPassword })
+      ).unwrap();
 
-    dispatch(loginUser({ email: user.email, password: loginPassword }));
-    toast.success(`Welcome back, ${user.name}!`, {
-      description: user.role === 'ADMIN' 
-        ? '👑 Financials Unlocked: Capital costs, ROI & Analytics are now accessible.'
-        : `👤 Staff Portal Active: Ready for showroom showcases & customer bookings.`
-    });
-    setLoginEmail('');
-    setLoginPassword('');
-    dispatch(closeAuthModal());
+      toast.success(`Welcome back, ${user.name}!`, {
+        description: user.role === 'ADMIN' 
+          ? '👑 Financials Unlocked: Capital costs, ROI & Analytics are now accessible.'
+          : '👤 Staff Portal Active: Ready for showroom showcases & customer bookings.'
+      });
+      setLoginEmail('');
+      setLoginPassword('');
+    } catch (err: any) {
+      toast.error(err || 'Invalid email or password.');
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regName || !regEmail || !regCode) {
+    if (!regName.trim() || !regEmail.trim() || !regCode.trim()) {
       toast.error('Please enter all required fields.');
       return;
     }
 
-    const existing = registeredUsers.find(
-      (u) => u.email.toLowerCase() === regEmail.toLowerCase()
-    );
-    if (existing) {
-      toast.error('A user with this email is already registered.');
-      return;
+    try {
+      const user = await dispatch(
+        registerStaffApi({
+          name: regName.trim(),
+          email: regEmail.trim(),
+          phone: regPhone.trim(),
+          employeeCode: regCode.trim(),
+          password: regPassword || 'staff123',
+        })
+      ).unwrap();
+
+      toast.success(`Staff Member "${user.name}" registered successfully!`, {
+        description: `Employee Code: ${user.employeeCode}. Saved to MongoDB.`
+      });
+      setRegName('');
+      setRegEmail('');
+      setRegPhone('');
+      setRegPassword('');
+    } catch (err: any) {
+      toast.error(err || 'Registration failed.');
     }
-
-    dispatch(
-      registerStaff({
-        name: regName,
-        email: regEmail,
-        phone: regPhone,
-        employeeCode: regCode,
-        password: regPassword || 'staff123',
-      })
-    );
-
-    toast.success(`Staff Member "${regName}" registered successfully!`, {
-      description: `Employee Code: ${regCode}. All new bookings will now be tracked under your name.`
-    });
-    dispatch(closeAuthModal());
   };
 
   return (
@@ -219,12 +216,13 @@ export function AuthModal() {
               <Button
                 type="submit"
                 fullWidth
+                disabled={loading}
                 variant="contained"
                 color="primary"
-                endIcon={<ArrowRight style={{ width: 16, height: 16 }} />}
+                endIcon={loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight style={{ width: 16, height: 16 }} />}
                 sx={{ py: 1.3, mt: 1, borderRadius: 9999, fontWeight: 700, fontSize: '0.8125rem' }}
               >
-                Sign In to Boutique OS
+                {loading ? 'Signing In to MongoDB...' : 'Sign In to Boutique OS'}
               </Button>
             </form>
           ) : (
@@ -315,12 +313,13 @@ export function AuthModal() {
               <Button
                 type="submit"
                 fullWidth
+                disabled={loading}
                 variant="contained"
                 color="primary"
-                endIcon={<Sparkles style={{ width: 16, height: 16 }} />}
+                endIcon={loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles style={{ width: 16, height: 16 }} />}
                 sx={{ py: 1.3, mt: 1, borderRadius: 9999, fontWeight: 700, fontSize: '0.8125rem' }}
               >
-                Register Staff Member
+                {loading ? 'Saving to MongoDB...' : 'Register Staff Member'}
               </Button>
             </form>
           )}

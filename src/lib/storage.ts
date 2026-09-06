@@ -1,5 +1,4 @@
 import { Choli, Booking, UserProfile } from '@/types';
-import { INITIAL_USERS } from './demoData';
 
 const CHOLIS_KEY = 'shreesakhi_cholis_v4';
 const BOOKINGS_KEY = 'shreesakhi_bookings_v4';
@@ -47,16 +46,13 @@ export function saveStoredBookings(bookings: Booking[]): void {
 }
 
 export function getStoredUsers(): UserProfile[] {
-  if (typeof window === 'undefined') return INITIAL_USERS;
+  if (typeof window === 'undefined') return [];
   try {
     const item = localStorage.getItem(USERS_KEY);
-    if (!item) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
-      return INITIAL_USERS;
-    }
+    if (!item) return [];
     return JSON.parse(item);
   } catch {
-    return INITIAL_USERS;
+    return [];
   }
 }
 

@@ -1,6 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { UserProfile, UserRole } from '@/types';
-import { INITIAL_USERS } from '@/lib/demoData';
 import { saveStoredCurrentUser, saveStoredUsers } from '@/lib/storage';
 
 interface AuthState {
@@ -9,15 +8,87 @@ interface AuthState {
   registeredUsers: UserProfile[];
   isAuthModalOpen: boolean;
   theme: 'light' | 'dark';
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: AuthState = {
   currentUser: null, // Strictly unauthenticated by default (private capital hidden)
   isAuthenticated: false,
-  registeredUsers: INITIAL_USERS,
+  registeredUsers: [],
   isAuthModalOpen: false,
   theme: 'light',
+  loading: false,
+  error: null,
 };
+
+// Async thunk to fetch all users from MongoDB
+export const fetchUsersApi = createAsyncThunk(
+  'auth/fetchUsersApi',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetch('/api/auth/users');
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to fetch users');
+      }
+      return data.users as UserProfile[];
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Error fetching users');
+    }
+  }
+);
+
+// Async thunk to login user against MongoDB
+export const loginUserApi = createAsyncThunk(
+  'auth/loginUserApi',
+  async (credentials: { email: string; password?: string }, { rejectWithValue }) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to login');
+      }
+      return data.user as UserProfile;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Login failed');
+    }
+  }
+);
+
+// Async thunk to register staff in MongoDB
+export const registerStaffApi = createAsyncThunk(
+  'auth/registerStaffApi',
+  async (
+    staffData: {
+      name: string;
+      email: string;
+      phone?: string;
+      employeeCode: string;
+      password?: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(staffData),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to register staff');
+      }
+      return data.user as UserProfile;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Registration failed');
+    }
+  }
+);
 
 export const authSlice = createSlice({
   name: 'auth',
@@ -88,9 +159,11 @@ export const authSlice = createSlice({
     },
     openAuthModal: (state) => {
       state.isAuthModalOpen = true;
+      state.error = null;
     },
     closeAuthModal: (state) => {
       state.isAuthModalOpen = false;
+      state.error = null;
     },
     toggleTheme: (state) => {
       state.theme = state.theme === 'light' ? 'dark' : 'light';
@@ -115,6 +188,51 @@ export const authSlice = createSlice({
       }
     }
   },
+  extraReducers: (builder) => {
+    builder
+      // Fetch Users
+      .addCase(fetchUsersApi.fulfilled, (state, action) => {
+        state.registeredUsers = action.payload;
+        saveStoredUsers(state.registeredUsers);
+      })
+      // Login
+      .addCase(loginUserApi.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginUserApi.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentUser = action.payload;
+        state.isAuthenticated = true;
+        state.isAuthModalOpen = false;
+        saveStoredCurrentUser(action.payload);
+      })
+      .addCase(loginUserApi.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || 'Login failed';
+      })
+      // Register
+      .addCase(registerStaffApi.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(registerStaffApi.fulfilled, (state, action) => {
+        state.loading = false;
+        const exists = state.registeredUsers.some(u => u.id === action.payload.id || u.email === action.payload.email);
+        if (!exists) {
+          state.registeredUsers.push(action.payload);
+        }
+        state.currentUser = action.payload;
+        state.isAuthenticated = true;
+        state.isAuthModalOpen = false;
+        saveStoredUsers(state.registeredUsers);
+        saveStoredCurrentUser(action.payload);
+      })
+      .addCase(registerStaffApi.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || 'Registration failed';
+      });
+  }
 });
 
 export const {

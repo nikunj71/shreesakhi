@@ -7,7 +7,7 @@ import { Toaster } from 'sonner';
 import { useAppDispatch } from '@/store/hooks';
 import { setCholis, fetchCholis } from '@/store/choliSlice';
 import { setBookings, fetchBookings } from '@/store/bookingSlice';
-import { setTheme, setUsers, setCurrentUser } from '@/store/authSlice';
+import { setTheme, setUsers, setCurrentUser, fetchUsersApi } from '@/store/authSlice';
 import { getStoredCholis, getStoredBookings, getStoredUsers, getStoredCurrentUser } from '@/lib/storage';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { MuiThemeProvider } from './MuiThemeProvider';
@@ -34,12 +34,13 @@ function Initializer({ children }: { children: React.ReactNode }) {
 
     if (cholis.length > 0) dispatch(setCholis(cholis));
     if (bookings.length > 0) dispatch(setBookings(bookings));
-    dispatch(setUsers(users));
+    if (users.length > 0) dispatch(setUsers(users));
     dispatch(setCurrentUser(currentUser));
 
     // Fetch live data directly from MongoDB
     dispatch(fetchCholis(currentUser?.role || 'GUEST'));
     dispatch(fetchBookings());
+    dispatch(fetchUsersApi());
 
     // 2. Hydrate Theme: Explicitly default to 'light' and ensure 'dark' class is removed
     const savedTheme = localStorage.getItem('shreesakhi_theme') as 'light' | 'dark' | null;

@@ -47,15 +47,17 @@ export function BookingModal() {
   const [eventDate, setEventDate] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [discount, setDiscount] = useState<number>(0);
+  const [customDeposit, setCustomDeposit] = useState<number | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('CLEARED');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('UPI');
   const [alterationNotes, setAlterationNotes] = useState('');
   const [dateConflictWarning, setDateConflictWarning] = useState<string | null>(null);
   const [createdBookingForInvoice, setCreatedBookingForInvoice] = useState<Booking | null>(null);
 
-  // Sync selected cholis when modal opens
+  // Sync selected cholis and reset custom deposit when modal opens
   useEffect(() => {
     if (isBookingModalOpen) {
+      setCustomDeposit(null);
       if (selectedCholiForBooking) {
         setSelectedCholiIds([selectedCholiForBooking]);
       } else if (selectedCholiIds.length === 0 && cholis.length > 0) {
@@ -138,10 +140,11 @@ export function BookingModal() {
     );
   }
 
-  // Combined totals for all selected cholis
-  const rentAmount = selectedCholis.reduce((acc, c) => acc + c.rentalPricePerEvent, 0);
-  const securityDeposit = selectedCholis.reduce((acc, c) => acc + c.securityDeposit, 0);
-  const finalTotal = Math.max(0, rentAmount + securityDeposit - Number(discount || 0));
+  // Combined totals for all selected cholis with customizable deposit support
+  const rentAmount = selectedCholis.reduce((acc, c) => acc + (c.rentalPricePerEvent || 0), 0);
+  const defaultSecurityDeposit = selectedCholis.reduce((acc, c) => acc + (c.securityDeposit || 0), 0);
+  const activeSecurityDeposit = customDeposit !== null ? customDeposit : defaultSecurityDeposit;
+  const finalTotal = Math.max(0, rentAmount + activeSecurityDeposit - Number(discount || 0));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +166,9 @@ export function BookingModal() {
 
     const baseBookingNumber = `BK-${Math.floor(1000 + Math.random() * 9000)}`;
     const discountPerCholi = Math.round(Number(discount || 0) / selectedCholis.length);
+    const depositPerCholi = selectedCholis.length === 1 
+      ? activeSecurityDeposit 
+      : Math.round(activeSecurityDeposit / selectedCholis.length);
     const createdBookings: Booking[] = [];
 
     // Create a booking record for each selected choli
@@ -171,7 +177,7 @@ export function BookingModal() {
         ? baseBookingNumber 
         : `${baseBookingNumber}-${idx + 1}`;
 
-      const bTotal = Math.max(0, choli.rentalPricePerEvent + choli.securityDeposit - discountPerCholi);
+      const bTotal = Math.max(0, choli.rentalPricePerEvent + depositPerCholi - discountPerCholi);
 
       const newBooking: Booking = {
         _id: `bk-${Date.now()}-${idx}`,
@@ -190,7 +196,7 @@ export function BookingModal() {
         eventDate,
         returnExpectedDate: returnDate,
         rentAmount: choli.rentalPricePerEvent,
-        securityDeposit: choli.securityDeposit,
+        securityDeposit: depositPerCholi,
         discount: discountPerCholi,
         finalTotal: bTotal,
         paymentStatus,
@@ -239,6 +245,13 @@ export function BookingModal() {
     });
 
     setCreatedBookingForInvoice(firstBooking);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerAddress('');
+    setIdProof('');
+    setDiscount(0);
+    setCustomDeposit(null);
+    setAlterationNotes('');
     dispatch(closeBookingModal());
   };
 
@@ -599,10 +612,29 @@ export function BookingModal() {
                 </span>
               </div>
               <div>
-                <span className="text-[#78716C] dark:text-[#9BB5AF] block">Deposit (100% Refundable)</span>
-                <span className="font-bold text-[#1C1917] dark:text-[#FAF6EC]">
-                  ₹{(securityDeposit ?? 0).toLocaleString('en-IN')}
-                </span>
+                <label className="text-[#78716C] dark:text-[#9BB5AF] block mb-0.5">
+                  Deposit (Refundable)
+                </label>
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-stone-500">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={activeSecurityDeposit}
+                    onChange={(e) => setCustomDeposit(Math.max(0, Number(e.target.value)))}
+                    className="w-20 py-1 px-2 rounded-lg bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] font-bold text-[#1C1917] dark:text-[#FAF6EC]"
+                    title="Customize security deposit amount"
+                  />
+                </div>
+                {customDeposit !== null && customDeposit !== defaultSecurityDeposit && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomDeposit(null)}
+                    className="text-[9px] text-[#084C42] dark:text-[#DFBD76] underline block mt-0.5"
+                  >
+                    Reset (₹{defaultSecurityDeposit.toLocaleString('en-IN')})
+                  </button>
+                )}
               </div>
               <div>
                 <span className="text-[#78716C] dark:text-[#9BB5AF] block">Discount (₹)</span>

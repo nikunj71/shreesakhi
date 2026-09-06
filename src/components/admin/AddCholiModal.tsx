@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { addCholi, createCholiApi } from '@/store/choliSlice';
 import { Choli, CholiCategory } from '@/types';
@@ -22,26 +22,58 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<CholiCategory>('Bridal');
   const [color, setColor] = useState('');
-  const [fabric, setFabric] = useState('Pure Velvet with Zardozi');
+  const [fabric, setFabric] = useState('');
   const [blouseSize, setBlouseSize] = useState('36 (Alterable 34-38)');
   const [skirtLength, setSkirtLength] = useState<number>(42);
   const [instagramUrl, setInstagramUrl] = useState('');
   
-  // Multi-Photo Management State
-  const [photoInputs, setPhotoInputs] = useState<string[]>([
-    'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?q=80&w=1200&auto=format&fit=crop', // Front
-    'https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=1200&auto=format&fit=crop'  // Flare
-  ]);
+  // Multi-Photo Management State (Starts completely empty - NO default photos)
+  const [photoInputs, setPhotoInputs] = useState<string[]>([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Financial Costing (ADMIN ONLY)
-  const [totalCosting, setTotalCosting] = useState<number>(18000);
-  const [rentalPrice, setRentalPrice] = useState<number>(1499);
-  const [securityDeposit, setSecurityDeposit] = useState<number>(2500);
-  const [dryCleaningFee, setDryCleaningFee] = useState<number>(250);
+  // Financial Costing (ADMIN ONLY) - Clean initial state
+  const [totalCosting, setTotalCosting] = useState<number | ''>('');
+  const [rentalPrice, setRentalPrice] = useState<number | ''>('');
+  const [securityDeposit, setSecurityDeposit] = useState<number | ''>('');
+  const [dryCleaningFee, setDryCleaningFee] = useState<number | ''>(250);
   const [description, setDescription] = useState('');
+
+  // Complete Form Reset Function
+  const resetForm = () => {
+    setSku(`SK-${Math.floor(100 + Math.random() * 900)}`);
+    setName('');
+    setCategory('Bridal');
+    setColor('');
+    setFabric('');
+    setBlouseSize('36 (Alterable 34-38)');
+    setSkirtLength(42);
+    setInstagramUrl('');
+    setPhotoInputs([]);
+    setNewPhotoUrl('');
+    setIsUploadingPhoto(false);
+    setTotalCosting('');
+    setRentalPrice('');
+    setSecurityDeposit('');
+    setDryCleaningFee(250);
+    setDescription('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Reset form whenever modal opens to ensure no stale data from previously added choli
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -111,39 +143,40 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
   };
 
   const handleRemovePhoto = (idx: number) => {
-    if (photoInputs.length <= 1) {
-      toast.warning('At least 1 photo is required.');
-      return;
-    }
-    setPhotoInputs(photoInputs.filter((_, i) => i !== idx));
+    setPhotoInputs((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !color || !rentalPrice || !totalCosting) {
-      toast.error('Please fill in all mandatory choli details.');
+    if (!name.trim() || !color.trim() || rentalPrice === '' || totalCosting === '') {
+      toast.error('Please fill in all mandatory choli details (Name, Color, Wholesale Cost, Rental Rate).');
+      return;
+    }
+
+    if (photoInputs.length === 0) {
+      toast.error('Please upload or add at least one photo for the choli showcase.');
       return;
     }
 
     const newCholi: Choli = {
       _id: `choli-${Date.now()}`,
       sku,
-      name,
+      name: name.trim(),
       category,
-      color,
-      fabric,
+      color: color.trim(),
+      fabric: fabric.trim() || 'Pure Heritage Fabric',
       blouseSize,
-      skirtLength: Number(skirtLength),
-      images: photoInputs.length > 0 ? photoInputs : [APP_CONFIG.DEFAULT_PLACEHOLDER_IMAGE],
+      skirtLength: Number(skirtLength || 42),
+      images: photoInputs,
       totalCosting: Number(totalCosting),
       rentalPricePerEvent: Number(rentalPrice),
-      securityDeposit: Number(securityDeposit),
-      dryCleaningFee: Number(dryCleaningFee),
+      securityDeposit: Number(securityDeposit || 0),
+      dryCleaningFee: Number(dryCleaningFee || 0),
       totalEarnedFromRent: 0,
       isBreakEvenReached: false,
       status: 'AVAILABLE',
-      description: description || 'Shree Sakhi couture bridal choli masterpiece handcrafted with intricate heritage embroidery.',
+      description: description.trim() || `${name.trim()} - handcrafted designer choli with intricate artistry.`,
       bufferDaysBefore: 1,
       bufferDaysAfter: 2,
       instagramUrl: instagramUrl.trim() || undefined,
@@ -151,13 +184,20 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
     };
 
     dispatch(createCholiApi(newCholi));
-    toast.success(`Choli ${sku} successfully cataloged to MongoDB with ${photoInputs.length} photos!`);
+    toast.success(`Choli "${sku}" successfully cataloged with ${photoInputs.length} photos!`);
+    resetForm();
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-6">
+    <div 
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      onClick={handleClose}
+    >
+      <div 
+        className="relative w-full max-w-3xl bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-5 sm:p-6 text-white flex items-center justify-between">
@@ -175,8 +215,10 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
             </div>
           </div>
           <button
-            onClick={onClose}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+            type="button"
+            onClick={handleClose}
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-90"
+            title="Close"
           >
             <X className="w-4 h-4" />
           </button>
@@ -198,24 +240,37 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
             </div>
 
             {/* Photo Thumbnails Preview Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {photoInputs.map((url, idx) => (
-                <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden border-2 border-[#DFBD76] group">
-                  <img src={url} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
-                  <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] text-white font-bold">
-                    #{idx + 1} {idx === 0 ? '(Cover)' : ''}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePhoto(idx)}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover:opacity-100 transition-all"
-                    title="Remove Photo"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            {photoInputs.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {photoInputs.map((url, idx) => (
+                  <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden border-2 border-[#DFBD76] group shadow-sm">
+                    <img src={url} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] text-white font-bold backdrop-blur-sm">
+                      #{idx + 1} {idx === 0 ? '(Cover)' : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(idx)}
+                      className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-md active:scale-90"
+                      title="Remove Photo"
+                      aria-label="Remove Photo"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-6 px-4 rounded-2xl border-2 border-dashed border-[#DFBD76]/50 bg-[#DFBD76]/5 text-center space-y-1.5">
+                <Upload className="w-6 h-6 text-[#DFBD76] mx-auto opacity-90" />
+                <p className="text-xs font-bold text-[#084C42] dark:text-[#DFBD76]">
+                  No default photos — add your outfit photos
+                </p>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 max-w-sm mx-auto">
+                  Upload photos from your device (saved to Cloudinary) or paste image URLs below.
+                </p>
+              </div>
+            )}
 
             {/* Add Photo Controls: Local File Upload & Web URL */}
             {photoInputs.length < 6 && (
@@ -408,8 +463,9 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
                   type="number"
                   required
                   min="0"
+                  placeholder="e.g. 15000"
                   value={totalCosting}
-                  onChange={(e) => setTotalCosting(Number(e.target.value))}
+                  onChange={(e) => setTotalCosting(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
                   className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#0A2E28] border border-emerald-300 dark:border-emerald-800 font-bold text-[#084C42] dark:text-[#DFBD76]"
                 />
               </div>
@@ -422,8 +478,17 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
                   type="number"
                   required
                   min="0"
+                  placeholder="e.g. 1499"
                   value={rentalPrice}
-                  onChange={(e) => setRentalPrice(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const num = val === '' ? '' : Math.max(0, Number(val));
+                    setRentalPrice(num);
+                    // If deposit has not been manually entered yet, suggest equal to rental price or 1.5x
+                    if (securityDeposit === '' && typeof num === 'number' && num > 0) {
+                      setSecurityDeposit(Math.round(num * 1.5));
+                    }
+                  }}
                   className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] font-bold text-[#15803D] dark:text-[#22C55E]"
                 />
               </div>
@@ -435,10 +500,14 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
                 <input
                   type="number"
                   min="0"
+                  placeholder="e.g. 2000"
                   value={securityDeposit}
-                  onChange={(e) => setSecurityDeposit(Number(e.target.value))}
+                  onChange={(e) => setSecurityDeposit(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
                   className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] font-bold text-[#1C1917] dark:text-[#FAF6EC]"
                 />
+                <span className="text-[9px] text-[#084C42] dark:text-[#DFBD76] block mt-0.5 font-medium">
+                  Customizable deposit (editable)
+                </span>
               </div>
 
               <div>
@@ -448,8 +517,9 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
                 <input
                   type="number"
                   min="0"
+                  placeholder="e.g. 250"
                   value={dryCleaningFee}
-                  onChange={(e) => setDryCleaningFee(Number(e.target.value))}
+                  onChange={(e) => setDryCleaningFee(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
                   className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC]"
                 />
               </div>
@@ -478,7 +548,7 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
           <div className="flex items-center gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1 py-3 px-4 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] text-[#78716C] dark:text-[#9BB5AF] hover:bg-[#FAF8F5] dark:hover:bg-[#0A2E28] font-semibold transition-all"
             >
               Cancel

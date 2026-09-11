@@ -64,6 +64,27 @@ export const createCholiApi = createAsyncThunk(
   }
 );
 
+// Async thunk to update an existing choli in MongoDB
+export const updateCholiApi = createAsyncThunk(
+  'cholis/updateCholiApi',
+  async (updatedCholi: Partial<Choli> & { _id: string }, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`/api/cholis/${updatedCholi._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedCholi),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update choli');
+      }
+      return data.data as Choli;
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Error updating choli');
+    }
+  }
+);
+
 // Async thunk to delete a choli in MongoDB
 export const deleteCholiApi = createAsyncThunk(
   'cholis/deleteCholiApi',
@@ -156,6 +177,17 @@ export const choliSlice = createSlice({
         } else {
           const idx = state.items.findIndex(c => c._id === action.payload._id || c.sku === action.payload.sku);
           if (idx !== -1) state.items[idx] = action.payload;
+        }
+        saveStoredCholis(state.items);
+      })
+      .addCase(updateCholiApi.fulfilled, (state, action) => {
+        const idx = state.items.findIndex(
+          c => c._id === action.payload._id || c.sku === action.payload.sku
+        );
+        if (idx !== -1) {
+          state.items[idx] = action.payload;
+        } else {
+          state.items.unshift(action.payload);
         }
         saveStoredCholis(state.items);
       })

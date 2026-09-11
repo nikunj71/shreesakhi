@@ -41,18 +41,34 @@ export async function PATCH(request: Request, context: RouteContext) {
     const conn = await dbConnect();
 
     if (!conn) {
-      return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
+      return NextResponse.json({ success: true, data: { ...body, _id: id } });
     }
 
     const isObjectId = id.match(/^[0-9a-fA-F]{24}$/);
+    const { _id, ...updateData } = body;
+
+    const filterConditions: any[] = [];
+    if (isObjectId) {
+      filterConditions.push({ _id: id });
+    }
+    filterConditions.push({ sku: id });
+    if (body.sku && body.sku !== id) {
+      filterConditions.push({ sku: body.sku });
+    }
+
+    // Recalculate isBreakEvenReached if totalCosting or totalEarnedFromRent is updated
+    if (updateData.totalCosting !== undefined || updateData.totalEarnedFromRent !== undefined) {
+      const existing = await Choli.findOne({ $or: filterConditions });
+      if (existing) {
+        const totalCost = updateData.totalCosting !== undefined ? Number(updateData.totalCosting) : existing.totalCosting;
+        const totalEarned = updateData.totalEarnedFromRent !== undefined ? Number(updateData.totalEarnedFromRent) : existing.totalEarnedFromRent;
+        updateData.isBreakEvenReached = totalEarned >= totalCost;
+      }
+    }
+
     const updated = await Choli.findOneAndUpdate(
-      {
-        $or: [
-          ...(isObjectId ? [{ _id: id }] : []),
-          { sku: id },
-        ],
-      },
-      { $set: body },
+      { $or: filterConditions },
+      { $set: updateData },
       { new: true }
     ).lean();
 

@@ -2,22 +2,24 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { addCholi, createCholiApi } from '@/store/choliSlice';
-import { Choli, CholiCategory } from '@/types';
+import { addCholi, createCholiApi, updateCholiApi } from '@/store/choliSlice';
+import { Choli, CholiCategory, CholiStatus } from '@/types';
 import { APP_CONFIG, CHOLI_CATEGORIES, CHOLI_SIZES } from '@/constants';
-import { X, Sparkles, Plus, Image as ImageIcon, DollarSign, Trash2, Layers, Upload, Loader2, Link as LinkIcon } from 'lucide-react';
+import { X, Sparkles, Plus, Image as ImageIcon, DollarSign, Trash2, Layers, Upload, Loader2, Link as LinkIcon, Edit3, CheckCircle2 } from 'lucide-react';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import { toast } from 'sonner';
 
 interface AddCholiModalProps {
   isOpen: boolean;
   onClose: () => void;
+  choliToEdit?: Choli | null;
 }
 
-export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
+export function AddCholiModal({ isOpen, onClose, choliToEdit }: AddCholiModalProps) {
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state) => state.auth);
 
+  const isEdit = Boolean(choliToEdit);
   const [sku, setSku] = useState(`SK-${Math.floor(100 + Math.random() * 900)}`);
   const [name, setName] = useState('');
   const [category, setCategory] = useState<CholiCategory>('Bridal');
@@ -26,11 +28,13 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
   const [blouseSize, setBlouseSize] = useState('36 (Alterable 34-38)');
   const [skirtLength, setSkirtLength] = useState<number>(42);
   const [instagramUrl, setInstagramUrl] = useState('');
+  const [status, setStatus] = useState<CholiStatus>('AVAILABLE');
   
   // Multi-Photo Management State (Starts completely empty - NO default photos)
   const [photoInputs, setPhotoInputs] = useState<string[]>([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Financial Costing (ADMIN ONLY) - Clean initial state
@@ -42,33 +46,54 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
 
   // Complete Form Reset Function
   const resetForm = () => {
-    setSku(`SK-${Math.floor(100 + Math.random() * 900)}`);
-    setName('');
-    setCategory('Bridal');
-    setColor('');
-    setFabric('');
-    setBlouseSize('36 (Alterable 34-38)');
-    setSkirtLength(42);
-    setInstagramUrl('');
-    setPhotoInputs([]);
-    setNewPhotoUrl('');
-    setIsUploadingPhoto(false);
-    setTotalCosting('');
-    setRentalPrice('');
-    setSecurityDeposit('');
-    setDryCleaningFee(250);
-    setDescription('');
+    if (choliToEdit) {
+      setSku(choliToEdit.sku || '');
+      setName(choliToEdit.name || '');
+      setCategory(choliToEdit.category || 'Bridal');
+      setColor(choliToEdit.color || '');
+      setFabric(choliToEdit.fabric || '');
+      setBlouseSize(choliToEdit.blouseSize || '36 (Alterable 34-38)');
+      setSkirtLength(choliToEdit.skirtLength || 42);
+      setInstagramUrl(choliToEdit.instagramUrl || '');
+      setPhotoInputs([...(choliToEdit.images || [])]);
+      setNewPhotoUrl('');
+      setIsUploadingPhoto(false);
+      setTotalCosting(choliToEdit.totalCosting ?? '');
+      setRentalPrice(choliToEdit.rentalPricePerEvent ?? '');
+      setSecurityDeposit(choliToEdit.securityDeposit ?? '');
+      setDryCleaningFee(choliToEdit.dryCleaningFee ?? 250);
+      setDescription(choliToEdit.description || '');
+      setStatus(choliToEdit.status || 'AVAILABLE');
+    } else {
+      setSku(`SK-${Math.floor(100 + Math.random() * 900)}`);
+      setName('');
+      setCategory('Bridal');
+      setColor('');
+      setFabric('');
+      setBlouseSize('36 (Alterable 34-38)');
+      setSkirtLength(42);
+      setInstagramUrl('');
+      setPhotoInputs([]);
+      setNewPhotoUrl('');
+      setIsUploadingPhoto(false);
+      setTotalCosting('');
+      setRentalPrice('');
+      setSecurityDeposit('');
+      setDryCleaningFee(250);
+      setDescription('');
+      setStatus('AVAILABLE');
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Reset form whenever modal opens to ensure no stale data from previously added choli
+  // Reset form whenever modal opens or choliToEdit changes
   useEffect(() => {
     if (isOpen) {
       resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, choliToEdit]);
 
   const handleClose = () => {
     resetForm();
@@ -146,7 +171,7 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
     setPhotoInputs((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name.trim() || !color.trim() || rentalPrice === '' || totalCosting === '') {
@@ -159,34 +184,69 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
       return;
     }
 
-    const newCholi: Choli = {
-      _id: `choli-${Date.now()}`,
-      sku,
-      name: name.trim(),
-      category,
-      color: color.trim(),
-      fabric: fabric.trim() || 'Pure Heritage Fabric',
-      blouseSize,
-      skirtLength: Number(skirtLength || 42),
-      images: photoInputs,
-      totalCosting: Number(totalCosting),
-      rentalPricePerEvent: Number(rentalPrice),
-      securityDeposit: Number(securityDeposit || 0),
-      dryCleaningFee: Number(dryCleaningFee || 0),
-      totalEarnedFromRent: 0,
-      isBreakEvenReached: false,
-      status: 'AVAILABLE',
-      description: description.trim() || `${name.trim()} - handcrafted designer choli with intricate artistry.`,
-      bufferDaysBefore: 1,
-      bufferDaysAfter: 2,
-      instagramUrl: instagramUrl.trim() || undefined,
-      createdAt: new Date().toISOString(),
-    };
+    setIsSubmitting(true);
+    try {
+      if (isEdit && choliToEdit) {
+        const updatedCholi: Choli = {
+          ...choliToEdit,
+          sku: sku.trim(),
+          name: name.trim(),
+          category,
+          color: color.trim(),
+          fabric: fabric.trim() || 'Pure Heritage Fabric',
+          blouseSize,
+          skirtLength: Number(skirtLength || 42),
+          images: photoInputs,
+          totalCosting: Number(totalCosting),
+          rentalPricePerEvent: Number(rentalPrice),
+          securityDeposit: Number(securityDeposit || 0),
+          dryCleaningFee: Number(dryCleaningFee || 0),
+          status,
+          description: description.trim() || `${name.trim()} - handcrafted designer choli with intricate artistry.`,
+          instagramUrl: instagramUrl.trim() || undefined,
+          isBreakEvenReached: (choliToEdit.totalEarnedFromRent || 0) >= Number(totalCosting),
+        };
 
-    dispatch(createCholiApi(newCholi));
-    toast.success(`Choli "${sku}" successfully cataloged with ${photoInputs.length} photos!`);
-    resetForm();
-    onClose();
+        await dispatch(updateCholiApi(updatedCholi)).unwrap();
+        toast.success(`Choli "${sku}" successfully updated!`, {
+          description: 'Modifications saved to vault inventory and database.',
+        });
+      } else {
+        const newCholi: Choli = {
+          _id: `choli-${Date.now()}`,
+          sku: sku.trim(),
+          name: name.trim(),
+          category,
+          color: color.trim(),
+          fabric: fabric.trim() || 'Pure Heritage Fabric',
+          blouseSize,
+          skirtLength: Number(skirtLength || 42),
+          images: photoInputs,
+          totalCosting: Number(totalCosting),
+          rentalPricePerEvent: Number(rentalPrice),
+          securityDeposit: Number(securityDeposit || 0),
+          dryCleaningFee: Number(dryCleaningFee || 0),
+          totalEarnedFromRent: 0,
+          isBreakEvenReached: false,
+          status,
+          description: description.trim() || `${name.trim()} - handcrafted designer choli with intricate artistry.`,
+          bufferDaysBefore: 1,
+          bufferDaysAfter: 2,
+          instagramUrl: instagramUrl.trim() || undefined,
+          createdAt: new Date().toISOString(),
+        };
+
+        await dispatch(createCholiApi(newCholi)).unwrap();
+        toast.success(`Choli "${sku}" successfully cataloged with ${photoInputs.length} photos!`);
+      }
+      resetForm();
+      onClose();
+    } catch (err: any) {
+      console.error('Error saving choli:', err);
+      toast.error(err.message || 'Failed to save choli details');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -203,14 +263,23 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
         <div className="bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-5 sm:p-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-[#DFBD76]/20 border border-[#DFBD76]/40 flex items-center justify-center text-[#DFBD76]">
-              <Plus className="w-5 h-5" />
+              {isEdit ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             </div>
             <div>
-              <h2 className="font-serif text-lg sm:text-xl font-bold">
-                Catalog New Choli (Multi-Photo)
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-serif text-lg sm:text-xl font-bold">
+                  {isEdit ? 'Edit Choli Details' : 'Catalog New Choli (Multi-Photo)'}
+                </h2>
+                {isEdit && (
+                  <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-[#DFBD76]/30 border border-[#DFBD76]/50 text-[#DFBD76] font-bold">
+                    {sku}
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-[#E0E7E5]">
-                Upload local photos via Cloudinary or web URLs, set Instagram link, and configure costing
+                {isEdit 
+                  ? 'Update photos, sizing specifications, status, and confidential costing'
+                  : 'Upload local photos via Cloudinary or web URLs, set Instagram link, and configure costing'}
               </p>
             </div>
           </div>
@@ -377,6 +446,23 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
 
             <div>
               <label className="font-semibold text-[#1C1917] dark:text-[#FAF6EC] block mb-1">
+                Status / Vault State *
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as CholiStatus)}
+                className="w-full py-2 px-3 rounded-xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#084C42] dark:text-[#DFBD76] font-bold"
+              >
+                <option value="AVAILABLE">Available (Ready for Rent)</option>
+                <option value="RENTED">Currently Rented</option>
+                <option value="IN_ALTERATION">In Alteration / Tailoring</option>
+                <option value="AT_DRY_CLEANER">At Dry Cleaner</option>
+                <option value="RETIRED">Archived / Retired</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="font-semibold text-[#1C1917] dark:text-[#FAF6EC] block mb-1">
                 Primary Color(s) *
               </label>
               <input
@@ -388,7 +474,9 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
                 className="w-full py-2 px-3 rounded-xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC]"
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="font-semibold text-[#1C1917] dark:text-[#FAF6EC] block mb-1">
                 Fabric & Work
@@ -401,12 +489,10 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
                 className="w-full py-2 px-3 rounded-xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC]"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="font-semibold text-[#1C1917] dark:text-[#FAF6EC] block mb-1">
-                Blouse Size & Alteration Range
+                Blouse Size & Alteration
               </label>
               <input
                 type="text"
@@ -556,10 +642,25 @@ export function AddCholiModal({ isOpen, onClose }: AddCholiModalProps) {
 
             <button
               type="submit"
-              className="flex-2 py-3 px-6 rounded-xl font-bold bg-gradient-to-r from-[#084C42] to-[#0D6357] text-white hover:opacity-95 shadow-lg shadow-[#084C42]/20 transition-all flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+              className="flex-2 py-3 px-6 rounded-xl font-bold bg-gradient-to-r from-[#084C42] to-[#0D6357] text-white hover:opacity-95 shadow-lg shadow-[#084C42]/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Catalog Choli ({photoInputs.length} Photos)</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#DFBD76]" />
+                  <span>Saving Changes...</span>
+                </>
+              ) : isEdit ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-[#DFBD76]" />
+                  <span>Update Choli Details</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-[#DFBD76]" />
+                  <span>Catalog Choli ({photoInputs.length} Photos)</span>
+                </>
+              )}
             </button>
           </div>
 

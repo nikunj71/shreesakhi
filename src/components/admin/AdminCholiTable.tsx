@@ -30,7 +30,8 @@ import {
   ExternalLink,
   ShoppingBag,
   QrCode,
-  AlertCircle
+  AlertCircle,
+  Edit3
 } from 'lucide-react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -40,11 +41,13 @@ import { toast } from 'sonner';
 import { OutfitPhotoCarousel } from '@/components/showroom/OutfitPhotoCarousel';
 import { CholiGridSkeleton } from '@/components/common/BoutiqueLoader';
 import { openInstagram } from '@/lib/instagram';
+import { AddCholiModal } from '@/components/admin/AddCholiModal';
 
 interface AdminCholiTableProps {
   onCheckCalendar?: (choliId: string) => void;
   onOpenAddModal?: () => void;
   onSwitchToShowroom?: () => void;
+  onEditCholi?: (choli: Choli) => void;
 }
 
 const CATEGORIES: (CholiCategory | 'All')[] = [
@@ -56,7 +59,7 @@ const CATEGORIES: (CholiCategory | 'All')[] = [
   'Partywear',
 ];
 
-export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToShowroom }: AdminCholiTableProps) {
+export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToShowroom, onEditCholi }: AdminCholiTableProps) {
   const dispatch = useAppDispatch();
   const cholis = useAppSelector((state) => state.cholis.items);
   const cholisLoading = useAppSelector((state) => state.cholis.loading);
@@ -72,6 +75,7 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
   const [selectedCholiForDateCheck, setSelectedCholiForDateCheck] = useState<Choli | null>(null);
   const [selectedCholiForQr, setSelectedCholiForQr] = useState<Choli | null>(null);
   const [choliToDelete, setCholiToDelete] = useState<Choli | null>(null);
+  const [editingCholi, setEditingCholi] = useState<Choli | null>(null);
   const [previewCholi, setPreviewCholi] = useState<Choli | null>(null);
   const [selectedPreviewImageIdx, setSelectedPreviewImageIdx] = useState(0);
   const [modalTouchStartX, setModalTouchStartX] = useState<number | null>(null);
@@ -163,6 +167,18 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
 
     return matchesSearch && matchesCategory && matchesStatus && matchesDate;
   });
+
+  const handleEdit = (choli: Choli) => {
+    if (currentUser?.role !== 'ADMIN') {
+      toast.error('Only Admin has permission to edit outfits.');
+      return;
+    }
+    if (onEditCholi) {
+      onEditCholi(choli);
+    } else {
+      setEditingCholi(choli);
+    }
+  };
 
   const handleDelete = (choli: Choli) => {
     if (currentUser?.role !== 'ADMIN') {
@@ -693,6 +709,18 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                               <InstagramIcon sx={{ fontSize: 16 }} />
                             </a>
 
+                            {/* Edit Choli (Admin) */}
+                            {currentUser?.role === 'ADMIN' && (
+                              <button
+                                onClick={() => handleEdit(c)}
+                                className="p-1.5 rounded-lg border border-[#EADFC9] dark:border-[#1A3E38] hover:border-[#084C42] dark:hover:border-[#DFBD76] hover:bg-[#084C42]/10 dark:hover:bg-[#DFBD76]/15 text-[#084C42] dark:text-[#DFBD76] transition-all"
+                                title="Edit Choli Details (Admin)"
+                                aria-label="Edit Choli Details"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                            )}
+
                             {/* Delete Choli */}
                             <button
                               onClick={() => handleDelete(c)}
@@ -976,6 +1004,16 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                         </button>
                         {currentUser?.role === 'ADMIN' && (
                           <button
+                            onClick={() => handleEdit(c)}
+                            className="p-2 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] text-[#084C42] dark:text-[#DFBD76] hover:border-[#DFBD76] hover:bg-[#FAF8F5] dark:hover:bg-[#072622] transition-all shadow-sm"
+                            title="Edit Choli Details (Admin)"
+                            aria-label="Edit Choli Details"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {currentUser?.role === 'ADMIN' && (
+                          <button
                             onClick={() => handleDelete(c)}
                             className="p-2 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/60 border border-red-200 dark:border-red-900/40 transition-all shadow-sm"
                             title="Delete from Inventory"
@@ -992,6 +1030,15 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
             </div>
           )}
         </div>
+      )}
+
+      {/* Edit Choli Modal */}
+      {editingCholi && (
+        <AddCholiModal
+          isOpen={Boolean(editingCholi)}
+          choliToEdit={editingCholi}
+          onClose={() => setEditingCholi(null)}
+        />
       )}
 
       {/* Date Availability Checker Modal */}

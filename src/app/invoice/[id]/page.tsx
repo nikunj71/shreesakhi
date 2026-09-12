@@ -187,16 +187,18 @@ export default function PublicInvoicePage() {
         {/* Luxury Header Banner */}
         <div className="bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-6 sm:p-8 text-white relative overflow-hidden border-b-4 border-[#DFBD76]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-[#DFBD76] block mb-1">
-                Luxury Designer Atelier
-              </span>
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-wide">
-                SHREE SAKHI
-              </h1>
-              <p className="text-xs text-stone-200 mt-1 max-w-sm">
-                Official Rental Tax Invoice & Fitting Agreement
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="h-16 px-3 py-1 rounded-2xl bg-[#025151] border-2 border-[#DFBD76] flex items-center justify-center shadow-md flex-shrink-0">
+                <img src="/logo-cropped.png" alt="श्री SAKHI BOUTIQUE" className="h-full w-auto object-contain" />
+              </div>
+              <div>
+                <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-wide text-[#FAF6EC]">
+                  श्री SAKHI BOUTIQUE
+                </h1>
+                <p className="text-xs text-stone-200 mt-1 max-w-sm">
+                  Official Rental Tax Invoice & Fitting Agreement
+                </p>
+              </div>
             </div>
 
             <div className="sm:text-right bg-black/25 backdrop-blur-md p-3.5 rounded-2xl border border-white/10 sm:min-w-44">

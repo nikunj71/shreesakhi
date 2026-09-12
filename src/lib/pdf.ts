@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { Booking } from '@/types';
 import { APP_CONFIG } from '@/constants';
+import { BOUTIQUE_LOGO_BASE64 } from './logoBase64';
 
 interface PdfOptions {
   multipleBookings?: Booking[];
@@ -50,48 +51,52 @@ export function buildInvoicePdf(booking: Booking, options?: PdfOptions): jsPDF {
   const balanceDue = Math.max(0, grandTotal - totalAdvance);
 
   // ==========================================
-  // 1. TOP LUXURY HEADER BANNER
+  // 1. TOP LUXURY HEADER BANNER WITH OFFICIAL LOGO
   // ==========================================
+  const bannerHeight = 41;
   doc.setFillColor(...colorTeal);
-  doc.rect(0, 0, pageWidth, 38, 'F');
+  doc.rect(0, 0, pageWidth, bannerHeight, 'F');
 
   // Gold accent bar
   doc.setFillColor(...colorGold);
-  doc.rect(0, 38, pageWidth, 2.5, 'F');
+  doc.rect(0, bannerHeight, pageWidth, 2.5, 'F');
 
-  // Brand Name
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(...colorGold);
-  doc.text('SHREE SAKHI', margin, 17);
+  // Official Boutique Logo
+  if (BOUTIQUE_LOGO_BASE64) {
+    try {
+      doc.addImage(BOUTIQUE_LOGO_BASE64, 'JPEG', margin, 5, 52, 26.8);
+    } catch {
+      // Fallback text if image embedding fails
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(...colorGold);
+      doc.text('SHREE SAKHI', margin, 18);
+    }
+  }
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text('LUXURY DESIGNER ATELIER & COUTURE ON RENT', margin, 24);
-
   doc.setFontSize(7.5);
   doc.setTextColor(215, 235, 230);
-  doc.text(`Official Tax Invoice & Rental Receipt • GST & Boutique Certified`, margin, 31);
+  doc.text('Official Rental Tax Invoice & Fitting Agreement', margin, 37);
 
   // Invoice Title & Meta Box (Right Side)
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
+  doc.setFontSize(14);
   doc.setTextColor(255, 255, 255);
-  doc.text('RENTAL TAX INVOICE', pageWidth - margin, 15, { align: 'right' });
+  doc.text('TAX INVOICE', pageWidth - margin, 14, { align: 'right' });
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setTextColor(...colorGold);
-  doc.text(invoiceNumber, pageWidth - margin, 21, { align: 'right' });
+  doc.text(`Invoice No: ${invoiceNumber}`, pageWidth - margin, 21, { align: 'right' });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(8.5);
   doc.setTextColor(240, 240, 240);
-  doc.text(`Date: ${invoiceDate}`, pageWidth - margin, 27, { align: 'right' });
-  doc.text(`Order ID: ${booking.bookingNumber}`, pageWidth - margin, 32, { align: 'right' });
+  doc.text(`Date: ${invoiceDate}`, pageWidth - margin, 27.5, { align: 'right' });
+  doc.text(`Booking Ref: ${booking.bookingNumber}`, pageWidth - margin, 33.5, { align: 'right' });
 
-  let curY = 47;
+  let curY = 50;
 
   // ==========================================
   // 2. CUSTOMER INFO & BOUTIQUE INFO CARDS (2 COLS)
@@ -191,7 +196,7 @@ export function buildInvoicePdf(booking: Booking, options?: PdfOptions): jsPDF {
   doc.text('#', margin + 3, curY + 5);
   doc.text('ITEM & CRAFTSMANSHIP DESCRIPTION', margin + 12, curY + 5);
   doc.text('SKU CODE', margin + 95, curY + 5);
-  doc.text('SECURITY DEPOSIT', margin + 125, curY + 5);
+  doc.text('SECURITY DEPOSIT', margin + 120, curY + 5);
   doc.text('RENTAL FEE', pageWidth - margin - 3, curY + 5, { align: 'right' });
 
   curY += 7;
@@ -215,11 +220,11 @@ export function buildInvoicePdf(booking: Booking, options?: PdfOptions): jsPDF {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...colorMuted);
     doc.text(b.choliSku || 'SS-001', margin + 95, curY + 6);
-    doc.text(`₹${(b.securityDeposit || 0).toLocaleString('en-IN')}`, margin + 125, curY + 6);
+    doc.text(`Rs. ${(b.securityDeposit || 0).toLocaleString('en-IN')}`, margin + 120, curY + 6);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...colorTeal);
-    doc.text(`₹${(b.rentAmount || 0).toLocaleString('en-IN')}`, pageWidth - margin - 3, curY + 6, {
+    doc.text(`Rs. ${(b.rentAmount || 0).toLocaleString('en-IN')}`, pageWidth - margin - 3, curY + 6, {
       align: 'right',
     });
 
@@ -287,10 +292,10 @@ export function buildInvoicePdf(booking: Booking, options?: PdfOptions): jsPDF {
     sY += 5;
   };
 
-  addSummaryRow('Rental Fee Subtotal:', `₹${totalRent.toLocaleString('en-IN')}`);
-  addSummaryRow('Security Deposit (Refundable):', `₹${totalDeposit.toLocaleString('en-IN')}`);
+  addSummaryRow('Rental Fee Subtotal:', `Rs. ${totalRent.toLocaleString('en-IN')}`);
+  addSummaryRow('Security Deposit (Refundable):', `Rs. ${totalDeposit.toLocaleString('en-IN')}`);
   if (totalDiscount > 0) {
-    addSummaryRow('Privilege Discount:', `-₹${totalDiscount.toLocaleString('en-IN')}`);
+    addSummaryRow('Privilege Discount:', `-Rs. ${totalDiscount.toLocaleString('en-IN')}`);
   }
 
   // Separator line
@@ -298,16 +303,16 @@ export function buildInvoicePdf(booking: Booking, options?: PdfOptions): jsPDF {
   doc.line(finX + 4, sY - 1, finX + finWidth - 4, sY - 1);
   sY += 1.5;
 
-  addSummaryRow('Grand Total Order Value:', `₹${grandTotal.toLocaleString('en-IN')}`, true, true);
+  addSummaryRow('Grand Total Order Value:', `Rs. ${grandTotal.toLocaleString('en-IN')}`, true, true);
   if (totalAdvance > 0) {
-    addSummaryRow('Advance Amount Paid:', `₹${totalAdvance.toLocaleString('en-IN')}`, true);
+    addSummaryRow('Advance Amount Paid:', `Rs. ${totalAdvance.toLocaleString('en-IN')}`, true);
   }
   if (balanceDue > 0) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(180, 83, 9); // Amber
     doc.text('Balance Due on Pickup:', finX + 4, sY);
-    doc.text(`₹${balanceDue.toLocaleString('en-IN')}`, finX + finWidth - 4, sY, { align: 'right' });
+    doc.text(`Rs. ${balanceDue.toLocaleString('en-IN')}`, finX + finWidth - 4, sY, { align: 'right' });
     sY += 5;
   }
 
@@ -326,8 +331,8 @@ export function buildInvoicePdf(booking: Booking, options?: PdfOptions): jsPDF {
   const statusLabel = isPaid
     ? 'PAID IN FULL • CLEARED'
     : isPartial
-    ? `PARTIAL • ₹${totalAdvance.toLocaleString('en-IN')} ADVANCE RECEIVED`
-    : 'PAYMENT PENDING ON PICKUP';
+      ? `PARTIAL • Rs. ${totalAdvance.toLocaleString('en-IN')} ADVANCE RECEIVED`
+      : 'PAYMENT PENDING ON PICKUP';
   doc.text(statusLabel, finX + finWidth / 2, sY + 4.2, { align: 'center' });
 
   curY += 51;

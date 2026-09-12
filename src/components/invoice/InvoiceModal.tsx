@@ -14,6 +14,8 @@ import {
   Scissors
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { sendWhatsAppInvoice } from '@/lib/whatsapp';
+import { downloadInvoicePdf } from '@/lib/pdf';
 
 interface InvoiceModalProps {
   booking: Booking | null;
@@ -51,35 +53,7 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
   };
 
   const handleWhatsAppShare = () => {
-    const cleanPhone = booking.customer.phone.replace(/[^0-9]/g, '');
-    const advanceInfo = booking.advanceAmount && booking.advanceAmount > 0
-      ? `*Advance Paid:* ₹${Number(booking.advanceAmount).toLocaleString('en-IN')}\n` +
-        (booking.advanceAmount < booking.finalTotal
-          ? `*Balance Due on Pickup:* ₹${Math.max(0, booking.finalTotal - Number(booking.advanceAmount)).toLocaleString('en-IN')}\n`
-          : '')
-      : '';
-
-    const statusDisplay = booking.paymentStatus === 'CLEARED'
-      ? 'PAID IN FULL'
-      : booking.paymentStatus === 'PARTIAL'
-      ? 'ADVANCE RECEIVED (Balance due on pickup)'
-      : 'PAYMENT PENDING (Due on pickup)';
-
-    const message = encodeURIComponent(
-      `*ShreeSakhi Luxury Boutique - Rental Invoice & Booking Confirmation*\n\n` +
-      `*Invoice No:* ${invoiceNumber}\n` +
-      `*Customer:* ${booking.customer.name}\n` +
-      `*Outfit:* ${booking.choliName} (${booking.choliSku})\n` +
-      `*Rental Dates:* ${booking.pickupDate} to ${booking.returnExpectedDate}\n` +
-      `*Rental Fee:* ₹${booking.rentAmount.toLocaleString('en-IN')}\n` +
-      `*Security Deposit:* ₹${booking.securityDeposit.toLocaleString('en-IN')} (Refundable on Return)\n` +
-      (booking.discount > 0 ? `*Discount:* -₹${booking.discount.toLocaleString('en-IN')}\n` : '') +
-      `*Total Order:* ₹${booking.finalTotal.toLocaleString('en-IN')}\n` +
-      advanceInfo +
-      `*Payment Status:* ${statusDisplay}\n\n` +
-      `Thank you for choosing ShreeSakhi for your special occasion! ✨`
-    );
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+    sendWhatsAppInvoice(booking);
   };
 
   return (
@@ -106,12 +80,25 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
               type="button"
+              onClick={() => {
+                downloadInvoicePdf(booking);
+                toast.success(`PDF Invoice downloaded: ShreeSakhi-Invoice-${booking.bookingNumber}.pdf`);
+              }}
+              className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-gradient-to-r from-[#DFBD76] to-[#C5A059] hover:opacity-95 text-stone-950 font-bold text-xs flex items-center gap-1 transition-all shadow-sm active:scale-95"
+              title="Download Official PDF Invoice"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>PDF</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handlePrint}
-              className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-[#DFBD76] hover:bg-[#C5A059] text-stone-950 font-bold text-xs flex items-center gap-1 transition-all shadow-sm active:scale-95"
+              className="py-1.5 px-2.5 sm:px-3 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-1 transition-all shadow-sm active:scale-95 border border-white/20"
               title="Print or Save as PDF"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Print / PDF</span>
+              <span className="hidden sm:inline">Print</span>
             </button>
 
             <button
@@ -181,7 +168,7 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
             {/* Customer Information */}
             <div className="space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#084C42] dark:text-[#DFBD76] block">
-                Billed To (Client Details)
+                Billed To (Customer Details)
               </span>
               <p className="font-bold text-sm text-[#1C1917] dark:text-[#F5F5F7] print:text-black">
                 {booking.customer.name}
@@ -369,7 +356,7 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
           <div className="pt-6 flex justify-between items-end text-xs print:pt-10">
             <div className="text-center">
               <div className="w-32 border-b border-stone-400 pb-1 mb-1"></div>
-              <span className="text-[10px] text-[#78716C] print:text-stone-600">Client Signature</span>
+              <span className="text-[10px] text-[#78716C] print:text-stone-600">Customer Signature</span>
             </div>
             <div className="text-center">
               <div className="w-36 border-b border-stone-400 pb-1 mb-1 font-serif font-bold text-[#084C42] print:text-[#084C42]">

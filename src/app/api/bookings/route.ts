@@ -3,15 +3,36 @@ import { dbConnect } from '@/lib/dbConnect';
 import Booking from '@/models/Booking';
 import Choli from '@/models/Choli';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const conn = await dbConnect();
-    let bookings: any[] = [];
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const bookingNumber = searchParams.get('bookingNumber');
 
-    if (conn) {
-      bookings = await Booking.find({}).sort({ createdAt: -1 }).lean();
+    const conn = await dbConnect();
+    if (!conn) {
+      return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
     }
 
+    if (id || bookingNumber) {
+      const searchTerm = (id || bookingNumber || '').trim();
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(searchTerm);
+      const queryConditions: any[] = [];
+
+      if (isObjectId) {
+        queryConditions.push({ _id: searchTerm });
+      }
+
+      queryConditions.push({ bookingNumber: searchTerm });
+      queryConditions.push({ bookingNumber: new RegExp(`^${searchTerm}$`, 'i') });
+      const stripped = searchTerm.replace(/^BK-/i, '');
+      queryConditions.push({ bookingNumber: `BK-${stripped}` });
+
+      const single = await Booking.findOne({ $or: queryConditions }).lean();
+      return NextResponse.json({ success: true, data: single });
+    }
+
+    const bookings = await Booking.find({}).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ success: true, data: bookings });
   } catch (error: any) {
     return NextResponse.json(

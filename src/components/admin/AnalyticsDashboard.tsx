@@ -373,7 +373,7 @@ export function AnalyticsDashboard() {
         {/* Active Outfits on Rent */}
         <div className="bg-white dark:bg-[#072622] p-5 rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-sm space-y-2">
           <div className="flex items-center justify-between text-[#78716C] dark:text-[#9CA3AF]">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active with Clients</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Active with Customers</span>
             <Calendar className="w-4 h-4 text-[#DFBD76]" />
           </div>
           <p className="font-serif text-2xl sm:text-3xl font-bold text-[#1C1917] dark:text-[#FAF6EC]">
@@ -820,7 +820,7 @@ export function AnalyticsDashboard() {
             <div className="p-3 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9]/60 dark:border-[#1A3E38] space-y-1">
               <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 block">Picked Up</span>
               <p className="font-serif text-xl font-bold text-[#1C1917] dark:text-[#FAF6EC]">{activeRentals}</p>
-              <p className="text-[10px] text-[#78716C] dark:text-[#9CA3AF]">With clients</p>
+              <p className="text-[10px] text-[#78716C] dark:text-[#9CA3AF]">With customers</p>
             </div>
             <div className="p-3 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9]/60 dark:border-[#1A3E38] space-y-1">
               <span className="text-[10px] uppercase font-bold text-[#15803D] dark:text-[#22C55E] block">Returned</span>
@@ -849,7 +849,7 @@ export function AnalyticsDashboard() {
             </h3>
           </div>
           <p className="text-xs text-[#78716C] dark:text-[#9CA3AF]">
-            Overview of total choli capital status, breakeven milestones, and client security holdings.
+            Overview of total choli capital status, breakeven milestones, and customer security holdings.
           </p>
 
           <div className="grid grid-cols-2 gap-3 pt-2">
@@ -904,7 +904,7 @@ export function AnalyticsDashboard() {
                 ₹{(activeSecurityDeposits ?? 0).toLocaleString('en-IN')}
               </p>
               <p className="text-[10px] text-[#78716C] dark:text-[#9CA3AF]">
-                Held in escrow from clients
+                Held in escrow from customers
               </p>
             </div>
           </div>

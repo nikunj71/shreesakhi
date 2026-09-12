@@ -12,7 +12,7 @@ import {
   deleteBookingApi
 } from '@/store/bookingSlice';
 import { recordRentalEarnings, reverseRentalEarnings, fetchCholis, updateCholiApi } from '@/store/choliSlice';
-import { BookingStatus, DepositRefundStatus, Choli } from '@/types';
+import { Booking, BookingStatus, DepositRefundStatus, Choli } from '@/types';
 import { 
   ClipboardList, 
   Search, 
@@ -34,6 +34,7 @@ import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import { UpdateStatusModal } from '@/components/choli/UpdateStatusModal';
 import { BookingsListSkeleton } from '@/components/common/BoutiqueLoader';
 import { BoutiqueAutocomplete } from '@/components/common/BoutiqueAutocomplete';
+import { sendWhatsAppInvoice } from '@/lib/whatsapp';
 
 export function BookingsList() {
   const dispatch = useAppDispatch();
@@ -97,6 +98,16 @@ export function BookingsList() {
     dispatch(updateBookingStatusApi({ id: bookingId, status, returnDate }));
     toast.success(`Booking status updated to ${status} in MongoDB`);
 
+    if (status === 'CONFIRMED' && target) {
+      sendWhatsAppInvoice(target);
+      toast.success(`Booking ${target.bookingNumber} confirmed! WhatsApp invoice launched for ${target.customer.name}.`, {
+        action: {
+          label: '📱 WhatsApp Invoice',
+          onClick: () => sendWhatsAppInvoice(target),
+        }
+      });
+    }
+
     if (status === 'RETURNED' && target) {
       const targetCholi = cholis.find((c) => c._id === target.choliId || c.sku === target.choliSku);
       if (targetCholi) {
@@ -115,12 +126,8 @@ export function BookingsList() {
     toast.info(`Deposit refund status set to ${status} in MongoDB`);
   };
 
-  const handleWhatsApp = (phone: string, customerName: string, bookingNumber: string, sku: string) => {
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const message = encodeURIComponent(
-      `Namaste ${customerName}, this is ShreeSakhi Boutique regarding your Choli booking ${bookingNumber} (${sku}). Please let us know if you need any assistance with fittings or pickup!`
-    );
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+  const handleWhatsApp = (booking: Booking) => {
+    sendWhatsAppInvoice(booking);
   };
 
   return (
@@ -368,11 +375,11 @@ export function BookingsList() {
                   <span className="hidden sm:inline">Choli Status</span>
                 </button>
 
-                {/* WhatsApp Quick Message */}
+                {/* WhatsApp Tax Invoice */}
                 <button
-                  onClick={() => handleWhatsApp(b.customer.phone, b.customer.name, b.bookingNumber, b.choliSku)}
-                  className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 transition-all"
-                  title="WhatsApp Customer"
+                  onClick={() => handleWhatsApp(b)}
+                  className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 transition-all flex items-center gap-1 active:scale-95"
+                  title="Send Official WhatsApp Tax Invoice to Customer"
                 >
                   <MessageCircle className="w-4 h-4" />
                 </button>

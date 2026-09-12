@@ -29,6 +29,7 @@ import { InvoiceModal } from '@/components/invoice/InvoiceModal';
 import { BoutiqueAutocomplete } from '@/components/common/BoutiqueAutocomplete';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
+import { sendWhatsAppInvoice } from '@/lib/whatsapp';
 
 export function BookingModal() {
   const dispatch = useAppDispatch();
@@ -322,17 +323,31 @@ export function BookingModal() {
     }
 
     const firstBooking = createdBookings[0];
+
+    // Automatically send WhatsApp booking invoice to customer without requiring external services
+    if (firstBooking) {
+      try {
+        sendWhatsAppInvoice(firstBooking, { multipleBookings: createdBookings });
+      } catch (err) {
+        console.error('Failed to trigger WhatsApp automatically:', err);
+      }
+    }
+
     const advanceMsg = totalAdvance > 0 && totalAdvance < finalTotal
       ? ` • Advance Received: ₹${totalAdvance.toLocaleString('en-IN')} (Balance Due on Pickup: ₹${(finalTotal - totalAdvance).toLocaleString('en-IN')})`
       : totalAdvance >= finalTotal
       ? ' • Fully Cleared'
       : ' • Payment Due on Pickup';
 
-    toast.success(`Booking confirmed for ${customerName}!`, {
+    toast.success(`Booking confirmed! WhatsApp invoice launched for ${customerName}.`, {
       description: `${selectedCholis.length} outfit(s) [${selectedCholis.map(c => c.sku).join(', ')}] scheduled from ${pickupDate} to ${returnDate}${advanceMsg}.`,
       action: {
-        label: 'View Invoice',
-        onClick: () => setCreatedBookingForInvoice(firstBooking)
+        label: '📱 WhatsApp Invoice',
+        onClick: () => {
+          if (firstBooking) {
+            sendWhatsAppInvoice(firstBooking, { multipleBookings: createdBookings });
+          }
+        }
       }
     });
 

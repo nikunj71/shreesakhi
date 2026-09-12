@@ -1112,7 +1112,7 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                           {!avail.isAvailable && (avail.conflictBooking || avail.currentRental) && (
                             <div className="text-[11px] text-[#78716C] dark:text-[#9CA3AF] pt-1 border-t border-[#EADFC9]/50 dark:border-[#1A3E38] flex items-center justify-between">
                               <span className="truncate">
-                                Client: <strong className="text-[#1C1917] dark:text-[#FAF6EC]">{(avail.conflictBooking || avail.currentRental)?.customer.name}</strong>
+                                Customer: <strong className="text-[#1C1917] dark:text-[#FAF6EC]">{(avail.conflictBooking || avail.currentRental)?.customer.name}</strong>
                               </span>
                               <span className="font-mono text-[10px] text-[#084C42] dark:text-[#DFBD76] font-bold flex-shrink-0">
                                 {(avail.conflictBooking || avail.currentRental)?.bookingNumber}

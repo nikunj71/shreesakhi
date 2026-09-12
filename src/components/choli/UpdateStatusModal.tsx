@@ -48,7 +48,7 @@ const STATUS_OPTIONS: StatusOption[] = [
     bgClass: 'bg-emerald-50 dark:bg-emerald-950/40',
     borderClass: 'border-emerald-200 dark:border-emerald-800/50',
     selectedRing: 'ring-2 ring-emerald-500 border-emerald-500',
-    description: 'Pristine condition. Displayed on showroom rack and available for instant client trials and event bookings.',
+    description: 'Pristine condition. Displayed on showroom rack and available for instant customer trials and event bookings.',
   },
   {
     value: 'AT_DRY_CLEANER',
@@ -76,14 +76,14 @@ const STATUS_OPTIONS: StatusOption[] = [
   },
   {
     value: 'RENTED',
-    title: 'Rented to Client',
+    title: 'Rented to Customer',
     badge: 'Rented',
     icon: ShoppingBag,
     colorClass: 'text-[#084C42] dark:text-[#DFBD76]',
     bgClass: 'bg-[#084C42]/10 dark:bg-[#DFBD76]/15',
     borderClass: 'border-[#084C42]/25 dark:border-[#DFBD76]/40',
     selectedRing: 'ring-2 ring-[#084C42] dark:ring-[#DFBD76] border-[#084C42]',
-    description: 'Dispatched or handed over to the client for their wedding or festive celebration.',
+    description: 'Dispatched or handed over to the customer for their wedding or festive celebration.',
   },
   {
     value: 'RETIRED',

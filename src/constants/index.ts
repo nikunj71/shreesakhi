@@ -5,11 +5,11 @@ export const APP_CONFIG = {
   FULL_TITLE: 'Shree Sakhi Choli Collection',
   TAGLINE: 'Designer Cholis on Rent',
   CURRENCY: '₹',
-  LOCATION: 'Bandra West, Mumbai & Satellite, Ahmedabad',
-  PHONE: '+91 98200 11223',
-  EMAIL: 'contact@shreesakhi.com',
+  LOCATION: 'V-1 71, Shomeshwar villa, kathodara, surat-394326',
+  PHONE: '+91 7990529066',
+  EMAIL: 'shreesakhi0599@gmail.com',
   DEFAULT_INSTAGRAM_PROFILE: 'https://www.instagram.com/shree.sakhi_boutique',
-  DEFAULT_PLACEHOLDER_IMAGE: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=1200&auto=format&fit=crop',
+  DEFAULT_PLACEHOLDER_IMAGE: '',
 };
 
 export const CHOLI_CATEGORIES: { label: string; value: CholiCategory }[] = [

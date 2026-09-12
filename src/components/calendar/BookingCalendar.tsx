@@ -232,7 +232,7 @@ export function BookingCalendar({ initialCholiFilter = null }: BookingCalendarPr
                         <div
                           key={b._id}
                           className="text-[9px] font-mono font-bold truncate px-1.5 py-0.5 rounded-md bg-[#084C42] text-[#FAF6EC] border border-[#DFBD76]/30 flex items-center gap-1 shadow-sm"
-                          title={`${b.choliSku}: ${b.choliName} (Client: ${b.customer.name})`}
+                          title={`${b.choliSku}: ${b.choliName} (Customer: ${b.customer.name})`}
                         >
                           <span className="w-1 h-1 rounded-full bg-[#DFBD76] flex-shrink-0" />
                           <span className="truncate">{b.choliSku}</span>
@@ -331,7 +331,7 @@ export function BookingCalendar({ initialCholiFilter = null }: BookingCalendarPr
                         </div>
                       </div>
 
-                      {/* Client & Rental Specs */}
+                      {/* Customer & Rental Specs */}
                       <div className="space-y-1 text-[#78716C] dark:text-[#9CA3AF] text-[11px] bg-white dark:bg-[#0A2E28] p-2.5 rounded-xl border border-[#EADFC9]/50 dark:border-[#1A3E38]">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">

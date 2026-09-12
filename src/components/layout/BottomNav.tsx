@@ -29,6 +29,11 @@ export function BottomNav({ activeTab, setActiveTab, onOpenAddModal }: BottomNav
   const isAdmin = currentUser?.role === 'ADMIN';
   const isStaff = currentUser?.role === 'STAFF';
 
+  // If user is not logged in, no navigation tabs or redundant showroom button needed
+  if (!currentUser) {
+    return null;
+  }
+
   return (
     <nav 
       aria-label="Mobile Bottom Navigation"
@@ -36,39 +41,37 @@ export function BottomNav({ activeTab, setActiveTab, onOpenAddModal }: BottomNav
     >
       <div className="flex items-center justify-around max-w-lg mx-auto">
         
-        {/* ADMIN BOTTOM NAVIGATION: 6 Items */}
+        {/* ADMIN BOTTOM NAVIGATION: Symmetrical 5-Slot Layout with Add in the exact Center */}
         {isAdmin && (
           <>
-            {/* Mode 1: Table View */}
+            {/* Slot 1: Outfits (Inventory Table / Showroom Cards) */}
             <button
-              onClick={() => setActiveTab('inventory')}
-              className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
-                activeTab === 'inventory'
+              onClick={() => {
+                if (activeTab === 'inventory') setActiveTab('showroom');
+                else if (activeTab === 'showroom') setActiveTab('inventory');
+                else setActiveTab('inventory');
+              }}
+              className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all ${
+                activeTab === 'inventory' || activeTab === 'showroom'
                   ? 'text-[#084C42] dark:text-[#DFBD76] font-bold'
                   : 'text-[#78716C] dark:text-[#9BB5AF] hover:text-[#084C42]'
               }`}
+              title={activeTab === 'showroom' ? 'Switch to Inventory Table' : 'Switch to Cards View'}
             >
-              <Table className="w-5 h-5" />
-              <span className="text-[10px] mt-0.5 leading-none">Table</span>
+              {activeTab === 'showroom' ? (
+                <LayoutGrid className="w-5 h-5" />
+              ) : (
+                <Table className="w-5 h-5" />
+              )}
+              <span className="text-[10px] mt-0.5 leading-none">
+                {activeTab === 'showroom' ? 'Cards' : 'Inventory'}
+              </span>
             </button>
 
-            {/* Mode 2: Card View */}
-            <button
-              onClick={() => setActiveTab('showroom')}
-              className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
-                activeTab === 'showroom'
-                  ? 'text-[#084C42] dark:text-[#DFBD76] font-bold'
-                  : 'text-[#78716C] dark:text-[#9BB5AF] hover:text-[#084C42]'
-              }`}
-            >
-              <LayoutGrid className="w-5 h-5" />
-              <span className="text-[10px] mt-0.5 leading-none">Cards</span>
-            </button>
-
-            {/* Calendar */}
+            {/* Slot 2: Calendar */}
             <button
               onClick={() => setActiveTab('calendar')}
-              className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all ${
                 activeTab === 'calendar'
                   ? 'text-[#084C42] dark:text-[#DFBD76] font-bold'
                   : 'text-[#78716C] dark:text-[#9BB5AF] hover:text-[#084C42]'
@@ -78,22 +81,23 @@ export function BottomNav({ activeTab, setActiveTab, onOpenAddModal }: BottomNav
               <span className="text-[10px] mt-0.5 leading-none">Calendar</span>
             </button>
 
-            {/* Floating Action Button: Add Outfit */}
-            <button
-              onClick={onOpenAddModal}
-              className="flex flex-col items-center justify-center -mt-4 active:scale-95 transition-transform"
-              title="Catalog New Choli"
-            >
-              <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#084C42] via-[#0D6357] to-[#DFBD76] flex items-center justify-center text-[#FAF6EC] shadow-lg shadow-[#084C42]/40 border-2 border-[#FAF8F5] dark:border-[#072622]">
+            {/* Slot 3: DEAD-CENTER FLOATING ACTION BUTTON (Add) */}
+            <div className="flex flex-col items-center justify-center flex-1 -mt-5">
+              <button
+                onClick={onOpenAddModal}
+                className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#084C42] via-[#0D6357] to-[#DFBD76] flex items-center justify-center text-[#FAF6EC] shadow-xl shadow-[#084C42]/50 border-2 border-[#FAF8F5] dark:border-[#072622] active:scale-95 transition-transform hover:scale-105"
+                title="Catalog New Choli"
+                aria-label="Add Choli"
+              >
                 <PlusCircle className="w-6 h-6 text-[#FAF6EC]" />
-              </div>
+              </button>
               <span className="text-[9px] mt-0.5 font-bold text-[#084C42] dark:text-[#DFBD76]">Add</span>
-            </button>
+            </div>
 
-            {/* Bookings */}
+            {/* Slot 4: Bookings */}
             <button
               onClick={() => setActiveTab('bookings')}
-              className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all relative ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all relative ${
                 activeTab === 'bookings'
                   ? 'text-[#084C42] dark:text-[#DFBD76] font-bold'
                   : 'text-[#78716C] dark:text-[#9BB5AF] hover:text-[#084C42]'
@@ -102,14 +106,14 @@ export function BottomNav({ activeTab, setActiveTab, onOpenAddModal }: BottomNav
               <ClipboardList className="w-5 h-5" />
               <span className="text-[10px] mt-0.5 leading-none">Bookings</span>
               {bookings.length > 0 && (
-                <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-[#DFBD76]" />
+                <span className="absolute top-0 right-3 w-2 h-2 rounded-full bg-[#DFBD76]" />
               )}
             </button>
 
-            {/* ROI & Analytics */}
+            {/* Slot 5: Analytics */}
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all ${
                 activeTab === 'analytics'
                   ? 'text-[#084C42] dark:text-[#DFBD76] font-bold'
                   : 'text-[#78716C] dark:text-[#9BB5AF] hover:text-[#084C42]'
@@ -121,70 +125,64 @@ export function BottomNav({ activeTab, setActiveTab, onOpenAddModal }: BottomNav
           </>
         )}
 
-        {/* STAFF BOTTOM NAVIGATION */}
+        {/* STAFF BOTTOM NAVIGATION: Symmetrical Layout with Center Add Button */}
         {isStaff && (
           <>
+            {/* Slot 1: Showroom Lookbook */}
             <button
               onClick={() => setActiveTab('showroom')}
-              className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all ${
                 activeTab === 'showroom'
                   ? 'text-[#084C42] dark:text-[#DFBD76] font-bold'
-                  : 'text-[#78716C] dark:text-[#9BB5AF]'
+                  : 'text-[#78716C] dark:text-[#9BB5AF] hover:text-[#084C42]'
               }`}
             >
               <ShoppingBag className="w-5 h-5" />
-              <span className="text-[10px] mt-0.5 font-medium">Showroom</span>
+              <span className="text-[10px] mt-0.5 leading-none">Showroom</span>
             </button>
 
+            {/* Slot 2: Calendar */}
             <button
               onClick={() => setActiveTab('calendar')}
-              className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all ${
                 activeTab === 'calendar'
                   ? 'text-[#084C42] dark:text-[#DFBD76] font-bold'
-                  : 'text-[#78716C] dark:text-[#9BB5AF]'
+                  : 'text-[#78716C] dark:text-[#9BB5AF] hover:text-[#084C42]'
               }`}
             >
               <CalendarIcon className="w-5 h-5" />
-              <span className="text-[10px] mt-0.5 font-medium">Calendar</span>
+              <span className="text-[10px] mt-0.5 leading-none">Calendar</span>
             </button>
 
+            {/* Slot 3: DEAD-CENTER FLOATING ACTION BUTTON (Add) */}
+            <div className="flex flex-col items-center justify-center flex-1 -mt-5">
+              <button
+                onClick={onOpenAddModal}
+                className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#084C42] via-[#0D6357] to-[#DFBD76] flex items-center justify-center text-[#FAF6EC] shadow-xl shadow-[#084C42]/50 border-2 border-[#FAF8F5] dark:border-[#072622] active:scale-95 transition-transform hover:scale-105 cursor-pointer"
+                title="Staff: Catalog New Choli"
+                aria-label="Add Choli"
+              >
+                <PlusCircle className="w-6 h-6 text-[#FAF6EC]" />
+              </button>
+              <span className="text-[9px] mt-0.5 font-bold text-[#084C42] dark:text-[#DFBD76]">Add</span>
+            </div>
+
+            {/* Slot 4: Bookings */}
             <button
               onClick={() => setActiveTab('bookings')}
-              className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+              className={`flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all relative ${
                 activeTab === 'bookings'
                   ? 'text-[#084C42] dark:text-[#DFBD76] font-bold'
-                  : 'text-[#78716C] dark:text-[#9BB5AF]'
+                  : 'text-[#78716C] dark:text-[#9BB5AF] hover:text-[#084C42]'
               }`}
             >
               <ClipboardList className="w-5 h-5" />
-              <span className="text-[10px] mt-0.5 font-medium">Bookings</span>
+              <span className="text-[10px] mt-0.5 leading-none">Bookings</span>
+              {bookings.length > 0 && (
+                <span className="absolute top-0 right-3 w-2 h-2 rounded-full bg-[#DFBD76]" />
+              )}
             </button>
           </>
-        )}
-
-        {/* PUBLIC GUEST / CLIENT BOTTOM NAVIGATION (WITHOUT LOGIN: ONLY SHOWROOM & LOGIN) */}
-        {!currentUser && (
-          <div className="flex items-center justify-center gap-6 py-1 w-full">
-            <button
-              onClick={() => setActiveTab('showroom')}
-              className={`flex items-center gap-2 py-2 px-6 rounded-full transition-all ${
-                activeTab === 'showroom'
-                  ? 'bg-[#084C42] text-[#FAF6EC] font-bold shadow-md shadow-[#084C42]/30 border border-[#DFBD76]'
-                  : 'text-[#78716C] dark:text-[#9BB5AF]'
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4 text-[#DFBD76]" />
-              <span className="text-xs font-bold">Showroom</span>
-            </button>
-
-            <button
-              onClick={() => dispatch(openAuthModal())}
-              className="flex items-center gap-2 py-2 px-6 rounded-full bg-gradient-to-r from-[#084C42] to-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/50 shadow-md transition-all active:scale-95 font-bold text-xs"
-            >
-              <Lock className="w-4 h-4 text-[#DFBD76]" />
-              <span>Sign In</span>
-            </button>
-          </div>
         )}
 
       </div>

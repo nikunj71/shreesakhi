@@ -15,11 +15,15 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
     }
 
-    const isObjectId = id.match(/^[0-9a-fA-F]{24}$/);
+    const decodedId = decodeURIComponent(id || '').trim();
+    const isObjectId = decodedId.match(/^[0-9a-fA-F]{24}$/);
+    const escaped = decodedId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     const choli = await Choli.findOne({
       $or: [
-        ...(isObjectId ? [{ _id: id }] : []),
-        { sku: id },
+        ...(isObjectId ? [{ _id: decodedId }] : []),
+        { sku: decodedId },
+        { sku: new RegExp(`^${escaped}$`, 'i') },
       ],
     }).lean();
 
@@ -27,7 +31,13 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json({ success: false, error: 'Choli not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: choli });
+    return NextResponse.json({ 
+      success: true, 
+      data: {
+        ...choli,
+        _id: (choli as any)._id?.toString() || decodedId,
+      }
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -44,15 +54,18 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ success: true, data: { ...body, _id: id } });
     }
 
-    const isObjectId = id.match(/^[0-9a-fA-F]{24}$/);
+    const decodedId = decodeURIComponent(id || '').trim();
+    const isObjectId = decodedId.match(/^[0-9a-fA-F]{24}$/);
+    const escaped = decodedId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const { _id, ...updateData } = body;
 
     const filterConditions: any[] = [];
     if (isObjectId) {
-      filterConditions.push({ _id: id });
+      filterConditions.push({ _id: decodedId });
     }
-    filterConditions.push({ sku: id });
-    if (body.sku && body.sku !== id) {
+    filterConditions.push({ sku: decodedId });
+    filterConditions.push({ sku: new RegExp(`^${escaped}$`, 'i') });
+    if (body.sku && body.sku !== decodedId) {
       filterConditions.push({ sku: body.sku });
     }
 
@@ -76,7 +89,13 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ success: false, error: 'Choli not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({ 
+      success: true, 
+      data: {
+        ...updated,
+        _id: (updated as any)._id?.toString() || decodedId,
+      } 
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

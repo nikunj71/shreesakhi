@@ -54,7 +54,7 @@ const BookingSchema: Schema = new Schema({
   securityDeposit: { type: Number, required: true },
   discount: { type: Number, default: 0 },
   advanceAmount: { type: Number, default: 0 },
-  finalTotal: { type: Number, required: true },
+  finalTotal: { type: Number, default: 0 },
   paymentStatus: { 
     type: String, 
     enum: ['PENDING', 'CLEARED', 'PARTIAL'], 

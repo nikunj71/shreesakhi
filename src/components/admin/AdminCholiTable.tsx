@@ -7,7 +7,9 @@ import { openBookingModal } from '@/store/bookingSlice';
 import { DateCheckModal } from '@/components/showroom/DateCheckModal';
 import { CholiQrModal } from '@/components/choli/CholiQrModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+import { UpdateStatusModal } from '@/components/choli/UpdateStatusModal';
 import { Choli, CholiCategory, CholiStatus } from '@/types';
+import { BoutiqueAutocomplete } from '@/components/common/BoutiqueAutocomplete';
 import { 
   Search, 
   Filter, 
@@ -20,21 +22,25 @@ import {
   ChevronsRight,
   CheckCircle2, 
   Clock, 
-  RotateCcw,
-  Sparkles,
-  TrendingUp,
-  DollarSign,
-  Layers,
-  Award,
-  Table,
-  LayoutGrid,
-  Images,
-  X,
-  ExternalLink,
-  ShoppingBag,
-  QrCode,
-  AlertCircle,
-  Edit3
+  RotateCcw, 
+  Sparkles, 
+  TrendingUp, 
+  DollarSign, 
+  Layers, 
+  Award, 
+  Table, 
+  LayoutGrid, 
+  Images, 
+  X, 
+  ExternalLink, 
+  ShoppingBag, 
+  QrCode, 
+  AlertCircle, 
+  Edit3,
+  Shirt,
+  Scissors,
+  Waves,
+  Archive
 } from 'lucide-react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -42,7 +48,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import { APP_CONFIG } from '@/constants';
 import { toast } from 'sonner';
 import { OutfitPhotoCarousel } from '@/components/showroom/OutfitPhotoCarousel';
-import { CholiGridSkeleton } from '@/components/common/BoutiqueLoader';
+import { CholiGridSkeleton, AdminTableSkeleton } from '@/components/common/BoutiqueLoader';
 import { openInstagram } from '@/lib/instagram';
 import { AddCholiModal } from '@/components/admin/AddCholiModal';
 
@@ -114,21 +120,20 @@ function PaginationBar({
         </span>
 
         <div className="flex items-center gap-1.5 pl-2 border-l border-[#EADFC9] dark:border-[#1A3E38]">
-          <span className="text-[11px]">Per page:</span>
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              onPageSizeChange(Number(e.target.value));
+          <span className="text-[11px] whitespace-nowrap">Per page:</span>
+          <BoutiqueAutocomplete
+            value={String(pageSize)}
+            onChange={(val) => {
+              onPageSizeChange(Number(val));
               onPageChange(1);
             }}
-            className="py-1 px-2 rounded-lg bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] font-semibold text-xs focus:outline-none focus:border-[#084C42] dark:focus:border-[#DFBD76]"
-          >
-            {pageSizeOptions.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
+            options={pageSizeOptions.map((opt) => ({
+              value: String(opt),
+              label: String(opt),
+            }))}
+            className="w-24"
+            size="small"
+          />
         </div>
       </div>
 
@@ -230,6 +235,7 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
   const [selectedCholiForDateCheck, setSelectedCholiForDateCheck] = useState<Choli | null>(null);
   const [selectedCholiForQr, setSelectedCholiForQr] = useState<Choli | null>(null);
   const [choliToDelete, setCholiToDelete] = useState<Choli | null>(null);
+  const [statusCholi, setStatusCholi] = useState<Choli | null>(null);
   const [editingCholi, setEditingCholi] = useState<Choli | null>(null);
   const [previewCholi, setPreviewCholi] = useState<Choli | null>(null);
   const [selectedPreviewImageIdx, setSelectedPreviewImageIdx] = useState(0);
@@ -368,6 +374,11 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
   };
 
   const handleBookOutfit = (choliId: string) => {
+    const target = cholis.find((c) => c._id === choliId);
+    if (target?.status === 'AT_DRY_CLEANER') {
+      toast.error(`"${target.name}" (${target.sku}) is currently at the dry cleaner and cannot be booked.`);
+      return;
+    }
     dispatch(openBookingModal(choliId));
   };
 
@@ -396,7 +407,7 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
         {onOpenAddModal && (
           <button
             onClick={onOpenAddModal}
-            className="py-2 px-3.5 rounded-2xl text-xs font-bold bg-[#084C42] hover:bg-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/50 shadow-md flex items-center gap-2 transition-all self-start sm:self-auto flex-shrink-0"
+            className="py-2.5 px-4 rounded-2xl text-xs sm:text-sm font-bold bg-[#084C42] hover:bg-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/50 shadow-md flex items-center justify-center gap-2 transition-all w-full sm:w-auto flex-shrink-0"
           >
             <PlusCircle className="w-4 h-4 text-[#DFBD76]" />
             <span>Catalog New Choli</span>
@@ -461,82 +472,87 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
 
       {/* Filter & Search Toolbar */}
       <div className="bg-white dark:bg-[#072622] p-4 rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-sm flex flex-col sm:flex-row items-center gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1 w-full">
+        {/* Search Input Bar */}
+        <div className="relative flex-1 min-w-[200px] w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#78716C] dark:text-[#9BB5AF]" />
           <input
             type="text"
-            placeholder="Search by choli name, SKU, color, fabric..."
+            placeholder="Search by SKU, Name, Color, Fabric..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-2xl text-xs bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] placeholder-[#78716C] dark:placeholder-[#9BB5AF] focus:outline-none focus:border-[#DFBD76]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl text-xs sm:text-sm bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] placeholder-[#78716C] dark:placeholder-[#9BB5AF] focus:outline-none focus:border-[#DFBD76] shadow-sm"
           />
         </div>
 
-        {/* Category Select */}
-        <div className="w-full sm:w-44">
-          <select
+        {/* Category Autocomplete Dropdown */}
+        <div className="w-full sm:w-52">
+          <BoutiqueAutocomplete
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value as any)}
-            className="w-full py-2 px-3 rounded-2xl text-xs bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] focus:outline-none focus:border-[#DFBD76]"
-          >
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat === 'All' ? 'All Categories' : cat}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedCategory(val as any)}
+            options={CATEGORIES.map((cat) => ({
+              value: cat,
+              label: cat === 'All' ? 'All Categories' : `${cat} Cholis`,
+            }))}
+            placeholder="Filter Category..."
+          />
         </div>
 
-        {/* Status Select */}
-        <div className="w-full sm:w-36">
-          <select
+        {/* Status Autocomplete Dropdown */}
+        <div className="w-full sm:w-48">
+          <BoutiqueAutocomplete
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full py-2 px-3 rounded-2xl text-xs bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] focus:outline-none focus:border-[#DFBD76]"
-          >
-            <option value="All">All Statuses</option>
-            <option value="AVAILABLE">Available</option>
-            <option value="RENTED">Currently Rented</option>
-            <option value="IN_ALTERATION">In Alteration</option>
-          </select>
+            onChange={(val) => setStatusFilter(val)}
+            options={[
+              { value: 'All', label: 'All Statuses' },
+              { value: 'AVAILABLE', label: 'Available (Ready for Rent)', badge: 'Available' },
+              { value: 'RENTED', label: 'Currently Rented', badge: 'Rented' },
+              { value: 'IN_ALTERATION', label: 'In Alteration', badge: 'Alteration' },
+              { value: 'AT_DRY_CLEANER', label: 'At Dry Cleaner', badge: 'Cleaning' },
+              { value: 'RETIRED', label: 'Archived / Retired', badge: 'Archived' },
+            ]}
+            placeholder="Filter Status..."
+          />
         </div>
 
         {/* Date Availability Checker (MUI DatePicker) */}
-        <div className="flex items-center gap-1.5 py-1 px-3 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-xs">
-          <CalendarIcon className="w-3.5 h-3.5 text-[#084C42] dark:text-[#DFBD76] flex-shrink-0" />
-          <DatePicker
-            value={filterEventDate ? dayjs(filterEventDate) : null}
-            onChange={(newValue: Dayjs | null) => {
-              const val = newValue && newValue.isValid() ? newValue.format('YYYY-MM-DD') : '';
-              setFilterEventDate(val);
-              if (val) {
-                toast.info(`Filtering choli availability for ${val}`);
-              }
-            }}
-            slotProps={{
-              textField: {
-                size: 'small',
-                variant: 'standard',
-                slotProps: {
-                  input: { disableUnderline: true },
-                  htmlInput: { placeholder: 'Filter Event Date' },
-                },
-                sx: {
-                  width: { xs: 120, sm: 135 },
-                  '& .MuiInputBase-input': {
-                    fontSize: '0.75rem',
-                    py: 0.25,
-                    fontWeight: 600,
-                    color: 'inherit',
+        <div className="w-full sm:w-auto flex items-center justify-between gap-1.5 py-1 px-3.5 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-xs shadow-sm">
+          <div className="flex items-center gap-2 flex-1">
+            <CalendarIcon className="w-4 h-4 text-[#084C42] dark:text-[#DFBD76] flex-shrink-0" />
+            <DatePicker
+              value={filterEventDate ? dayjs(filterEventDate) : null}
+              onChange={(newValue: Dayjs | null) => {
+                const val = newValue && newValue.isValid() ? newValue.format('YYYY-MM-DD') : '';
+                setFilterEventDate(val);
+                if (val) {
+                  toast.info(`Filtering choli availability for ${val}`);
+                }
+              }}
+              slotProps={{
+                textField: {
+                  size: 'small',
+                  variant: 'standard',
+                  fullWidth: true,
+                  slotProps: {
+                    input: { disableUnderline: true },
+                    htmlInput: { placeholder: 'Filter Event Date' },
+                  },
+                  sx: {
+                    width: '100%',
+                    flex: 1,
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.8125rem',
+                      py: 0.35,
+                      fontWeight: 600,
+                      color: 'inherit',
+                    },
                   },
                 },
-              },
-              popper: {
-                sx: { zIndex: 9999 },
-              },
-            }}
-          />
+                popper: {
+                  sx: { zIndex: 9999 },
+                },
+              }}
+            />
+          </div>
           {filterEventDate && (
             <button
               type="button"
@@ -544,17 +560,17 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                 setFilterEventDate('');
                 setOnlyAvailableOnDate(false);
               }}
-              className="p-1 rounded-full hover:bg-stone-200 dark:hover:bg-[#0A2E28] text-[#78716C] dark:text-[#9BB5AF]"
+              className="p-1 rounded-full hover:bg-stone-200 dark:hover:bg-[#0A2E28] text-[#78716C] dark:text-[#9BB5AF] flex-shrink-0"
               title="Clear date"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
         {/* Only Available on Date Checkbox */}
         {filterEventDate && (
-          <label className="flex items-center gap-1.5 text-xs text-[#084C42] dark:text-[#DFBD76] font-bold cursor-pointer select-none bg-[#084C42]/10 dark:bg-[#DFBD76]/15 px-3 py-2 rounded-2xl border border-[#DFBD76]/40">
+          <label className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs text-[#084C42] dark:text-[#DFBD76] font-bold cursor-pointer select-none bg-[#084C42]/10 dark:bg-[#DFBD76]/15 px-3 py-2.5 rounded-2xl border border-[#DFBD76]/40">
             <input
               type="checkbox"
               checked={onlyAvailableOnDate}
@@ -575,11 +591,11 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
               setFilterEventDate('');
               setOnlyAvailableOnDate(false);
             }}
-            className="p-2 rounded-xl text-xs font-semibold text-[#78716C] hover:text-[#084C42] dark:hover:text-[#DFBD76] flex items-center gap-1 flex-shrink-0"
+            className="w-full sm:w-auto p-2.5 sm:p-2 rounded-xl text-xs font-semibold text-[#78716C] hover:text-[#084C42] dark:hover:text-[#DFBD76] flex items-center justify-center gap-1 flex-shrink-0 border border-[#EADFC9]/70 sm:border-transparent"
             title="Reset filters"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset</span>
+            <span>Reset filters</span>
           </button>
         )}
       </div>
@@ -608,11 +624,11 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
         </div>
 
         {/* View Mode Switcher: Proper Luxury Tabs Directly at Top of Table */}
-        <div className="flex items-center p-1 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#DFBD76]/40 shadow-inner">
+        <div className="w-full sm:w-auto flex items-center p-1 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#DFBD76]/40 shadow-inner">
           <button
             type="button"
             onClick={() => setViewMode('table')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition-all ${
               viewMode === 'table'
                 ? 'bg-gradient-to-r from-[#084C42] to-[#0D6357] text-[#FAF6EC] shadow-md shadow-[#084C42]/30 border border-[#DFBD76]/40'
                 : 'text-[#78716C] dark:text-[#9CA3AF] hover:text-[#1C1917] dark:hover:text-[#FAF6EC] hover:bg-white dark:hover:bg-[#072622]'
@@ -625,7 +641,7 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
           <button
             type="button"
             onClick={() => setViewMode('card')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-2.5 sm:py-1.5 rounded-xl text-xs font-bold transition-all ${
               viewMode === 'card'
                 ? 'bg-gradient-to-r from-[#084C42] to-[#0D6357] text-[#FAF6EC] shadow-md shadow-[#084C42]/30 border border-[#DFBD76]/40'
                 : 'text-[#78716C] dark:text-[#9CA3AF] hover:text-[#1C1917] dark:hover:text-[#FAF6EC] hover:bg-white dark:hover:bg-[#072622]'
@@ -657,16 +673,7 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
               </thead>
               <tbody className="divide-y divide-[#EADFC9]/60 dark:divide-[#1A3E38] text-xs">
                 {cholisLoading && cholis.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-16 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-8 h-8 rounded-full border-2 border-[#DFBD76] border-t-transparent animate-spin" />
-                        <span className="font-serif text-sm font-bold text-[#084C42] dark:text-[#DFBD76]">
-                          Loading Choli Master Register from Vault...
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
+                  <AdminTableSkeleton rows={8} />
                 ) : filteredCholis.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center text-[#78716C] dark:text-[#9CA3AF]">
@@ -837,15 +844,35 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                                 </span>
                               )
                             ) : (
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                c.status === 'AVAILABLE'
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                  : c.status === 'RENTED'
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                              }`}>
-                                {c.status === 'AVAILABLE' ? 'Available' : c.status === 'RENTED' ? 'Rented' : 'In Alteration'}
-                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setStatusCholi(c)}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-sm ${
+                                  c.status === 'AVAILABLE'
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300'
+                                    : c.status === 'AT_DRY_CLEANER'
+                                    ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-300'
+                                    : c.status === 'IN_ALTERATION'
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300'
+                                    : c.status === 'RENTED'
+                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300'
+                                    : 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-300'
+                                }`}
+                                title="Click to update outfit status (Cleaning, Alteration, Available, etc.)"
+                              >
+                                <span>
+                                  {c.status === 'AVAILABLE'
+                                    ? '🟢 Available'
+                                    : c.status === 'AT_DRY_CLEANER'
+                                    ? '🧺 Dry Cleaning'
+                                    : c.status === 'IN_ALTERATION'
+                                    ? '🪡 In Alteration'
+                                    : c.status === 'RENTED'
+                                    ? '👗 Rented'
+                                    : '📦 Archived'}
+                                </span>
+                                <span className="text-[9px] opacity-70 underline">Change</span>
+                              </button>
                             )}
                             {avail.upcomingCount !== undefined && avail.upcomingCount > 0 && !filterEventDate && (
                               <span className="block text-[9px] text-[#78716C] dark:text-[#9CA3AF]">
@@ -858,14 +885,49 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                         {/* Action Buttons */}
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            {/* Book Button */}
+                            {/* Staff / Admin Quick Status Button */}
                             <button
-                              onClick={() => handleBookOutfit(c._id)}
-                              className="p-1.5 rounded-lg bg-[#084C42] hover:bg-[#0D6357] text-[#FAF6EC] transition-all shadow-sm"
-                              title="Create Booking for this Choli"
+                              onClick={() => setStatusCholi(c)}
+                              className="p-1.5 rounded-lg border border-[#DFBD76]/60 bg-[#FAF8F5] dark:bg-[#0A2E28] text-[#084C42] dark:text-[#DFBD76] hover:bg-[#DFBD76]/20 transition-all shadow-sm"
+                              title="Update Outfit Status (Cleaning, Alteration, Available, etc.)"
                             >
-                              <ChevronRight className="w-4 h-4" />
+                              <Shirt className="w-4 h-4" />
                             </button>
+
+                            {/* Book Button */}
+                            {c.status === 'AT_DRY_CLEANER' ? (
+                              <button
+                                disabled
+                                className="p-1.5 rounded-lg bg-sky-100 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border border-sky-300 dark:border-sky-800/40 opacity-80 cursor-not-allowed"
+                                title="At Dry Cleaner (Cannot be booked)"
+                              >
+                                <Waves className="w-4 h-4" />
+                              </button>
+                            ) : c.status === 'IN_ALTERATION' ? (
+                              <button
+                                disabled
+                                className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800/40 opacity-80 cursor-not-allowed"
+                                title="In Alteration (Cannot be booked)"
+                              >
+                                <Scissors className="w-4 h-4" />
+                              </button>
+                            ) : c.status === 'RETIRED' ? (
+                              <button
+                                disabled
+                                className="p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-700 opacity-80 cursor-not-allowed"
+                                title="Archived (Cannot be booked)"
+                              >
+                                <Archive className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleBookOutfit(c._id)}
+                                className="p-1.5 rounded-lg bg-[#084C42] hover:bg-[#0D6357] text-[#FAF6EC] transition-all shadow-sm"
+                                title="Create Booking for this Choli"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            )}
 
                             {/* Check Date Availability */}
                             <button
@@ -1102,7 +1164,7 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                                 Laundry
                               </span>
                               <span className="font-semibold text-xs text-[#1C1917] dark:text-[#FAF6EC]">
-                                ₹{(c.dryCleaningFee ?? 500).toLocaleString('en-IN')}
+                                ₹{(c.dryCleaningFee ?? 0).toLocaleString('en-IN')}
                               </span>
                             </div>
                             <div>
@@ -1200,14 +1262,52 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
 
                       {/* Right Actions: Book + Delete */}
                       <div className="flex items-center gap-1.5">
+                        {/* Status update button on mobile card */}
                         <button
-                          onClick={() => handleBookOutfit(c._id)}
-                          className="py-1.5 px-3 rounded-xl bg-[#084C42] hover:bg-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/50 text-xs font-bold shadow-sm transition-all flex items-center gap-1"
-                          title="Book this outfit"
+                          onClick={() => setStatusCholi(c)}
+                          className="p-2 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#DFBD76]/60 text-[#084C42] dark:text-[#DFBD76] hover:bg-[#DFBD76]/20 transition-all shadow-sm"
+                          title="Update Status (Cleaning, Alteration, Ready)"
                         >
-                          <ShoppingBag className="w-3.5 h-3.5 text-[#DFBD76]" />
-                          <span>Book</span>
+                          <Shirt className="w-3.5 h-3.5" />
                         </button>
+
+                        {c.status === 'AT_DRY_CLEANER' ? (
+                          <button
+                            onClick={() => setStatusCholi(c)}
+                            className="py-1.5 px-3 rounded-xl bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border border-sky-300 dark:border-sky-800/50 text-xs font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                            title="At dry cleaner — Click to update status"
+                          >
+                            <Waves className="w-3 h-3" />
+                            <span>Dry Cleaning</span>
+                          </button>
+                        ) : c.status === 'IN_ALTERATION' ? (
+                          <button
+                            onClick={() => setStatusCholi(c)}
+                            className="py-1.5 px-3 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-300 dark:border-amber-800/50 text-xs font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                            title="In alteration — Click to update status"
+                          >
+                            <Scissors className="w-3 h-3" />
+                            <span>In Alteration</span>
+                          </button>
+                        ) : c.status === 'RETIRED' ? (
+                          <button
+                            onClick={() => setStatusCholi(c)}
+                            className="py-1.5 px-3 rounded-xl bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-300 dark:border-stone-700 text-xs font-bold shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                            title="Archived — Click to update status"
+                          >
+                            <Archive className="w-3 h-3" />
+                            <span>Archived</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBookOutfit(c._id)}
+                            className="py-1.5 px-3 rounded-xl bg-[#084C42] hover:bg-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/50 text-xs font-bold shadow-sm transition-all flex items-center gap-1"
+                            title="Book this outfit"
+                          >
+                            <ShoppingBag className="w-3.5 h-3.5 text-[#DFBD76]" />
+                            <span>Book</span>
+                          </button>
+                        )}
                         {currentUser?.role === 'ADMIN' && (
                           <button
                             onClick={() => handleEdit(c)}
@@ -1280,6 +1380,13 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
         onClose={() => setSelectedCholiForQr(null)}
       />
 
+      {/* Staff / Admin Update Choli Status Modal */}
+      <UpdateStatusModal
+        choli={statusCholi}
+        isOpen={Boolean(statusCholi)}
+        onClose={() => setStatusCholi(null)}
+      />
+
       {/* Custom Confirmation Popup for Deleting Choli from Table */}
       <ConfirmationModal
         isOpen={Boolean(choliToDelete)}
@@ -1311,11 +1418,11 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
       {/* Multi-Photo Lightbox Modal for Admin Table */}
       {previewCholi && (
         <div 
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
           onClick={() => setPreviewCholi(null)}
         >
           <div 
-            className="bg-white dark:bg-[#072622] rounded-3xl border border-[#DFBD76]/50 max-w-xl w-full p-5 shadow-2xl space-y-4"
+            className="bg-white dark:bg-[#072622] rounded-3xl border border-[#DFBD76]/50 max-w-xl w-full p-4 sm:p-5 shadow-2xl space-y-4 max-h-[calc(100dvh-1.5rem)] overflow-y-auto custom-scrollbar my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#EADFC9] dark:border-[#1A3E38]">

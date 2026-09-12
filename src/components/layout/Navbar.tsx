@@ -27,14 +27,14 @@ import {
   ShieldCheck,
   BadgeCheck,
   FileSpreadsheet,
-  PlusCircle,
   Calendar as CalendarIcon,
   ShoppingBag,
   BarChart3,
   Lock,
   LogOut,
   User,
-  ChevronDown
+  ChevronDown,
+  PlusCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -153,96 +153,94 @@ export function Navbar({ activeTab, setActiveTab, onOpenAddModal }: NavbarProps)
             </Box>
           </Box>
 
-          {/* Navigation Tabs (Showroom always available; operational tabs require Login) */}
-          <Box
-            sx={{
-              display: { xs: 'none', md: 'flex' },
-              alignItems: 'center',
-              gap: 0.5,
-              p: 0.5,
-              borderRadius: 9999,
-              bgcolor: isDark ? 'rgba(7, 38, 34, 0.8)' : 'rgba(244, 239, 230, 0.8)',
-              border: isDark ? '1px solid #1A3E38' : '1px solid #EADFC9',
-            }}
-          >
-            <Button
-              size="small"
-              onClick={() => setActiveTab('showroom')}
-              variant={activeTab === 'showroom' ? 'contained' : 'text'}
-              color="primary"
-              startIcon={<ShoppingBag style={{ width: 15, height: 15 }} />}
+          {/* Navigation Tabs (Only shown when logged in; hidden for unauthenticated visitors) */}
+          {currentUser && (
+            <Box
               sx={{
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                gap: 0.5,
+                p: 0.5,
                 borderRadius: 9999,
-                px: 2,
-                py: 0.75,
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: activeTab === 'showroom' ? '#FFFFFF' : isDark ? '#9CA3AF' : '#78716C',
+                bgcolor: isDark ? 'rgba(7, 38, 34, 0.8)' : 'rgba(244, 239, 230, 0.8)',
+                border: isDark ? '1px solid #1A3E38' : '1px solid #EADFC9',
               }}
             >
-              Showroom
-            </Button>
+              <Button
+                size="small"
+                onClick={() => setActiveTab('showroom')}
+                variant={activeTab === 'showroom' ? 'contained' : 'text'}
+                color="primary"
+                startIcon={<ShoppingBag style={{ width: 15, height: 15 }} />}
+                sx={{
+                  borderRadius: 9999,
+                  px: 2,
+                  py: 0.75,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: activeTab === 'showroom' ? '#FFFFFF' : isDark ? '#9CA3AF' : '#78716C',
+                }}
+              >
+                Showroom
+              </Button>
 
-            {currentUser && (
-              <>
+              <Button
+                size="small"
+                onClick={() => setActiveTab('calendar')}
+                variant={activeTab === 'calendar' ? 'contained' : 'text'}
+                color="primary"
+                startIcon={<CalendarIcon style={{ width: 15, height: 15 }} />}
+                sx={{
+                  borderRadius: 9999,
+                  px: 2,
+                  py: 0.75,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: activeTab === 'calendar' ? '#FFFFFF' : isDark ? '#9CA3AF' : '#78716C',
+                }}
+              >
+                Calendar
+              </Button>
+
+              <Button
+                size="small"
+                onClick={() => setActiveTab('bookings')}
+                variant={activeTab === 'bookings' ? 'contained' : 'text'}
+                color="primary"
+                sx={{
+                  borderRadius: 9999,
+                  px: 2,
+                  py: 0.75,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: activeTab === 'bookings' ? '#FFFFFF' : isDark ? '#9CA3AF' : '#78716C',
+                }}
+              >
+                Bookings ({bookings.length})
+              </Button>
+
+              {/* STRICTLY ADMIN ONLY: Analytics & ROI Tab */}
+              {currentUser?.role === 'ADMIN' && (
                 <Button
                   size="small"
-                  onClick={() => setActiveTab('calendar')}
-                  variant={activeTab === 'calendar' ? 'contained' : 'text'}
+                  onClick={() => setActiveTab('analytics')}
+                  variant={activeTab === 'analytics' ? 'contained' : 'text'}
                   color="primary"
-                  startIcon={<CalendarIcon style={{ width: 15, height: 15 }} />}
+                  startIcon={<BarChart3 style={{ width: 15, height: 15 }} />}
                   sx={{
                     borderRadius: 9999,
                     px: 2,
                     py: 0.75,
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    color: activeTab === 'calendar' ? '#FFFFFF' : isDark ? '#9CA3AF' : '#78716C',
+                    color: activeTab === 'analytics' ? '#FFFFFF' : isDark ? '#9CA3AF' : '#78716C',
                   }}
                 >
-                  Calendar
+                  ROI & Analytics
                 </Button>
-
-                <Button
-                  size="small"
-                  onClick={() => setActiveTab('bookings')}
-                  variant={activeTab === 'bookings' ? 'contained' : 'text'}
-                  color="primary"
-                  sx={{
-                    borderRadius: 9999,
-                    px: 2,
-                    py: 0.75,
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: activeTab === 'bookings' ? '#FFFFFF' : isDark ? '#9CA3AF' : '#78716C',
-                  }}
-                >
-                  Bookings ({bookings.length})
-                </Button>
-
-                {/* STRICTLY ADMIN ONLY: Analytics & ROI Tab */}
-                {currentUser?.role === 'ADMIN' && (
-                  <Button
-                    size="small"
-                    onClick={() => setActiveTab('analytics')}
-                    variant={activeTab === 'analytics' ? 'contained' : 'text'}
-                    color="primary"
-                    startIcon={<BarChart3 style={{ width: 15, height: 15 }} />}
-                    sx={{
-                      borderRadius: 9999,
-                      px: 2,
-                      py: 0.75,
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      color: activeTab === 'analytics' ? '#FFFFFF' : isDark ? '#9CA3AF' : '#78716C',
-                    }}
-                  >
-                    ROI & Analytics
-                  </Button>
-                )}
-              </>
-            )}
-          </Box>
+              )}
+            </Box>
+          )}
 
           {/* Action Tools & User Authentication Section */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
@@ -265,24 +263,32 @@ export function Navbar({ activeTab, setActiveTab, onOpenAddModal }: NavbarProps)
               </Tooltip>
             )}
 
-            {/* Add Choli Button (Strictly Admin only) */}
-            {currentUser?.role === 'ADMIN' && (
+            {/* Quick Add Choli Button for Admin & Staff in Desktop Navbar */}
+            {(currentUser?.role === 'ADMIN' || currentUser?.role === 'STAFF') && (
               <Button
-                size="small"
-                variant="contained"
-                color="secondary"
+                variant="outlined"
                 onClick={onOpenAddModal}
-                startIcon={<PlusCircle style={{ width: 15, height: 15 }} />}
+                startIcon={<PlusCircle style={{ width: 16, height: 16, color: '#DFBD76' }} />}
                 sx={{
                   borderRadius: 9999,
-                  fontSize: '0.75rem',
+                  px: 2,
+                  py: 0.75,
+                  fontSize: '0.8125rem',
                   fontWeight: 700,
-                  display: { xs: 'none', sm: 'inline-flex' },
+                  borderColor: isDark ? 'rgba(223, 189, 118, 0.4)' : '#DFBD76',
+                  color: isDark ? '#DFBD76' : '#084C42',
+                  bgcolor: isDark ? 'rgba(223, 189, 118, 0.1)' : 'rgba(223, 189, 118, 0.15)',
+                  textTransform: 'none',
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(223, 189, 118, 0.2)' : 'rgba(223, 189, 118, 0.3)',
+                    borderColor: '#DFBD76',
+                  },
                 }}
               >
-                Add Choli
+                <span>Add Choli</span>
               </Button>
             )}
+
 
             {/* WITHOUT LOGIN: Prominent Luxury MUI "Sign In" Button */}
             {!currentUser ? (

@@ -26,6 +26,7 @@ import {
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { InvoiceModal } from '@/components/invoice/InvoiceModal';
+import { BoutiqueAutocomplete } from '@/components/common/BoutiqueAutocomplete';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 
@@ -72,6 +73,7 @@ export function BookingModal() {
 
   // Combined totals for all selected cholis with customizable deposit support
   const selectedCholis = cholis.filter((c) => selectedCholiIds.includes(c._id));
+  const dryCleaningCholis = selectedCholis.filter((c) => c.status === 'AT_DRY_CLEANER');
   const rentAmount = selectedCholis.reduce((acc, c) => acc + (c.rentalPricePerEvent || 0), 0);
   const defaultSecurityDeposit = selectedCholis.reduce((acc, c) => acc + (c.securityDeposit || 0), 0);
   const activeSecurityDeposit = customDeposit !== null ? customDeposit : defaultSecurityDeposit;
@@ -84,7 +86,8 @@ export function BookingModal() {
       if (selectedCholiForBooking) {
         setSelectedCholiIds([selectedCholiForBooking]);
       } else if (selectedCholiIds.length === 0 && cholis.length > 0) {
-        setSelectedCholiIds([cholis[0]._id]);
+        const firstAvailable = cholis.find((c) => c.status !== 'AT_DRY_CLEANER') || cholis[0];
+        setSelectedCholiIds([firstAvailable._id]);
       }
     }
   }, [isBookingModalOpen, selectedCholiForBooking, cholis]);
@@ -210,6 +213,13 @@ export function BookingModal() {
 
     if (!customerName || !customerPhone) {
       toast.error('Customer name and phone number are required');
+      return;
+    }
+
+    if (dryCleaningCholis.length > 0) {
+      toast.error(
+        `Cannot book outfit(s) currently in dry cleaning: ${dryCleaningCholis.map((c) => `${c.name} (${c.sku})`).join(', ')}. Please remove them before proceeding.`
+      );
       return;
     }
 
@@ -341,11 +351,11 @@ export function BookingModal() {
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       onClick={() => dispatch(closeBookingModal())}
     >
       <div 
-        className="relative w-full max-w-2xl bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col"
+        className="relative w-full max-w-2xl bg-white dark:bg-[#072622] rounded-2xl sm:rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-auto max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2.5rem)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         
@@ -386,20 +396,24 @@ export function BookingModal() {
           </div>
         ) : (
           <div className="bg-[#FAF8F5] dark:bg-[#041A17] px-4 sm:px-6 py-2 border-b border-[#EADFC9] dark:border-[#1A3E38] flex flex-wrap items-center justify-between gap-2 text-xs flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[#78716C] dark:text-[#9BB5AF]">Attending Staff:</span>
-              <select
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+              <span className="text-[#78716C] dark:text-[#9BB5AF] whitespace-nowrap">Attending Staff:</span>
+              <BoutiqueAutocomplete
                 value={selectedStaffId}
-                onChange={(e) => setSelectedStaffId(e.target.value)}
-                className="py-1 px-2.5 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] font-semibold text-xs focus:outline-none focus:border-[#C5A059]"
-              >
-                <option value="">Floor Desk / Walk-in</option>
-                {registeredUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.employeeCode || u.role})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedStaffId(val)}
+                options={[
+                  { value: '', label: 'Floor Desk / Walk-in', sublabel: 'General Boutique Desk' },
+                  ...registeredUsers.map((u) => ({
+                    value: u.id,
+                    label: u.name,
+                    sublabel: u.employeeCode ? `Code: ${u.employeeCode}` : u.role,
+                    badge: u.role === 'ADMIN' ? '👑 Owner' : '👤 Staff',
+                  })),
+                ]}
+                placeholder="Select Staff..."
+                size="small"
+                className="w-56"
+              />
             </div>
             <button
               type="button"
@@ -463,6 +477,46 @@ export function BookingModal() {
               </div>
             )}
 
+            {/* Dry Cleaning Warning Banner */}
+            {dryCleaningCholis.length > 0 && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-2.5 text-amber-700 dark:text-amber-300 text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                <span>
+                  <strong>Cannot Book — In Dry Cleaning:</strong>{' '}
+                  {dryCleaningCholis.map((c) => `${c.name} (${c.sku})`).join(', ')} is currently at the dry cleaner and cannot be booked. Please remove it from your selection.
+                </span>
+              </div>
+            )}
+
+            {/* Autocomplete Outfit Quick-Search */}
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-[#78716C] dark:text-[#9BB5AF]">
+                Quick Search / Add Outfit by Name or SKU:
+              </span>
+              <BoutiqueAutocomplete
+                value=""
+                onChange={(val) => {
+                  if (val && !selectedCholiIds.includes(val)) {
+                    const c = cholis.find((ch) => ch._id === val);
+                    if (c?.status === 'AT_DRY_CLEANER') {
+                      toast.error(`"${c.name}" (${c.sku}) is currently at the dry cleaner and cannot be booked.`);
+                      return;
+                    }
+                    setSelectedCholiIds([...selectedCholiIds, val]);
+                    toast.success(`Added "${c?.name || val}" to booking selection`);
+                  }
+                }}
+                options={cholis.map((c) => ({
+                  value: c._id,
+                  label: `${c.sku} - ${c.name}`,
+                  sublabel: `${c.category} • Rent: ₹${(c.rentalPricePerEvent ?? 0).toLocaleString('en-IN')}`,
+                  badge: selectedCholiIds.includes(c._id) ? '✓ Added' : c.status === 'AT_DRY_CLEANER' ? 'Dry Cleaning' : c.status,
+                  disabled: c.status === 'AT_DRY_CLEANER',
+                }))}
+                placeholder="Type SKU or outfit name to add to booking..."
+              />
+            </div>
+
             {/* Scrollable Outfit Checklist */}
             <div className="max-h-44 overflow-y-auto rounded-2xl border border-[#EADFC9] dark:border-[#1A3E38] bg-[#FAF8F5]/60 dark:bg-[#041A17]/60 p-2 space-y-1.5 custom-scrollbar">
               <p className="text-[10px] uppercase tracking-wider text-[#78716C] dark:text-[#9BB5AF] px-1 font-bold">
@@ -470,11 +524,15 @@ export function BookingModal() {
               </p>
               {cholis.map((c) => {
                 const isSelected = selectedCholiIds.includes(c._id);
+                const isDryCleaning = c.status === 'AT_DRY_CLEANER';
+
                 return (
                   <label
                     key={c._id}
                     className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none ${
-                      isSelected
+                      isDryCleaning
+                        ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40 opacity-80'
+                        : isSelected
                         ? 'bg-[#084C42]/10 dark:bg-[#DFBD76]/15 border-[#084C42] dark:border-[#DFBD76] shadow-sm'
                         : 'bg-white dark:bg-[#041A17] border-[#EADFC9]/60 dark:border-[#1A3E38] hover:border-[#DFBD76]/60'
                     }`}
@@ -485,6 +543,10 @@ export function BookingModal() {
                         checked={isSelected}
                         onChange={(e) => {
                           if (e.target.checked) {
+                            if (isDryCleaning) {
+                              toast.error(`"${c.name}" (${c.sku}) is currently in dry cleaning and cannot be booked.`);
+                              return;
+                            }
                             setSelectedCholiIds([...selectedCholiIds, c._id]);
                           } else {
                             if (selectedCholiIds.length > 1) {
@@ -502,9 +564,16 @@ export function BookingModal() {
                         className="w-8 h-10 rounded-lg object-cover border border-[#EADFC9] dark:border-[#1A3E38] flex-shrink-0"
                       />
                       <div className="min-w-0">
-                        <p className="font-bold text-xs text-[#1C1917] dark:text-[#FAF6EC] truncate">
-                          {c.name}
-                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-bold text-xs text-[#1C1917] dark:text-[#FAF6EC] truncate">
+                            {c.name}
+                          </p>
+                          {isDryCleaning && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                              🧺 In Dry Cleaning
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 text-[10px] text-[#78716C] dark:text-[#9CA3AF]">
                           <span className="font-mono font-bold text-[#084C42] dark:text-[#DFBD76]">{c.sku}</span>
                           <span>•</span>
@@ -895,16 +964,17 @@ export function BookingModal() {
                 <label className="text-[11px] text-[#78716C] dark:text-[#9BB5AF] block mb-1 font-semibold">
                   Payment Mode Used {advanceAmount > 0 ? '(for Advance/Payment)' : ''}
                 </label>
-                <select
+                <BoutiqueAutocomplete
                   value={paymentMode}
-                  onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
-                  className="w-full py-2 px-3 rounded-xl bg-white dark:bg-[#0A2E28] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC]"
-                >
-                  <option value="UPI">UPI (GooglePay / PhonePe / Paytm)</option>
-                  <option value="CASH">Cash at Boutique</option>
-                  <option value="CARD">Credit / Debit Card</option>
-                  <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
-                </select>
+                  onChange={(val) => setPaymentMode(val as PaymentMode)}
+                  options={[
+                    { value: 'UPI', label: 'UPI (GooglePay / PhonePe / Paytm)', sublabel: 'Instant digital settlement' },
+                    { value: 'CASH', label: 'Cash at Boutique', sublabel: 'Physical currency counter' },
+                    { value: 'CARD', label: 'Credit / Debit Card', sublabel: 'POS card terminal swipe' },
+                    { value: 'BANK_TRANSFER', label: 'Bank Transfer / NEFT', sublabel: 'Direct RTGS / NEFT transfer' },
+                  ]}
+                  placeholder="Select Payment Mode..."
+                />
               </div>
 
               <div className="flex flex-col justify-end">
@@ -930,9 +1000,9 @@ export function BookingModal() {
           <button
             type="submit"
             form="booking-modal-form"
-            disabled={!!dateConflictWarning}
+            disabled={!!dateConflictWarning || dryCleaningCholis.length > 0 || selectedCholis.length === 0}
             className={`flex-2 py-2.5 px-6 rounded-xl font-bold text-white text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 ${
-              dateConflictWarning
+              dateConflictWarning || dryCleaningCholis.length > 0 || selectedCholis.length === 0
                 ? 'bg-stone-400 cursor-not-allowed opacity-50'
                 : 'bg-gradient-to-r from-[#084C42] to-[#0D6357] hover:opacity-95 shadow-[#084C42]/20'
             }`}

@@ -36,10 +36,10 @@ const CholiSchema: Schema = new Schema({
   blouseSize: { type: String, default: '36 (Alterable 34-38)' },
   skirtLength: { type: Number, default: 42 },
   images: [{ type: String }],
-  totalCosting: { type: Number, required: true },
-  rentalPricePerEvent: { type: Number, required: true },
-  securityDeposit: { type: Number, required: true },
-  dryCleaningFee: { type: Number, default: 500 },
+  totalCosting: { type: Number, default: 0 },
+  rentalPricePerEvent: { type: Number, default: 0 },
+  securityDeposit: { type: Number, default: 0 },
+  dryCleaningFee: { type: Number, default: 0 },
   totalEarnedFromRent: { type: Number, default: 0 },
   isBreakEvenReached: { type: Boolean, default: false },
   status: { 
@@ -53,5 +53,9 @@ const CholiSchema: Schema = new Schema({
   bufferDaysAfter: { type: Number, default: 2 },
   createdAt: { type: Date, default: Date.now }
 });
+
+if (mongoose.models.Choli) {
+  delete mongoose.models.Choli;
+}
 
 export default mongoose.models.Choli || mongoose.model<ICholiDocument>('Choli', CholiSchema);

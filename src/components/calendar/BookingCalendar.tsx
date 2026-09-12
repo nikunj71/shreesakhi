@@ -15,8 +15,11 @@ import {
   ShieldAlert,
   Layers,
   Tag,
-  RotateCcw
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-react';
+import { BookingCalendarSkeleton } from '@/components/common/BoutiqueLoader';
+import { BoutiqueAutocomplete } from '@/components/common/BoutiqueAutocomplete';
 
 interface BookingCalendarProps {
   initialCholiFilter?: string | null;
@@ -24,13 +27,16 @@ interface BookingCalendarProps {
 
 export function BookingCalendar({ initialCholiFilter = null }: BookingCalendarProps) {
   const dispatch = useAppDispatch();
-  const cholis = useAppSelector((state) => state.cholis.items);
-  const bookings = useAppSelector((state) => state.bookings.items);
+  const { items: cholis, loading: cholisLoading } = useAppSelector((state) => state.cholis);
+  const { items: bookings, loading: bookingsLoading } = useAppSelector((state) => state.bookings);
 
   const [selectedCholiId, setSelectedCholiId] = useState<string>(initialCholiFilter || 'ALL');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [selectedDayBookings, setSelectedDayBookings] = useState<any[] | null>(null);
   const [selectedDayStr, setSelectedDayStr] = useState<string | null>(null);
+
+  const targetCholi = cholis.find((c) => c._id === selectedCholiId);
+  const isSelectedInDryCleaning = selectedCholiId !== 'ALL' && targetCholi?.status === 'AT_DRY_CLEANER';
 
   const filteredBookings = bookings.filter((b) => {
     if (b.status === 'CANCELLED') return false;
@@ -79,6 +85,10 @@ export function BookingCalendar({ initialCholiFilter = null }: BookingCalendarPr
     setSelectedDayBookings(dayBookings);
   };
 
+  if ((cholisLoading || bookingsLoading) && cholis.length === 0 && bookings.length === 0) {
+    return <BookingCalendarSkeleton />;
+  }
+
   return (
     <div className="space-y-6">
       
@@ -117,21 +127,23 @@ export function BookingCalendar({ initialCholiFilter = null }: BookingCalendarPr
         </div>
 
         {/* Choli SKU Filter Bar & Quick Stats */}
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          {/* Choli Filter Dropdown */}
-          <div className="flex-1 sm:flex-initial relative min-w-[200px]">
-            <select
+        <div className="flex items-center gap-2.5 w-full md:w-auto">
+          {/* Choli Filter Autocomplete Dropdown */}
+          <div className="w-full md:w-72 flex-1 md:flex-initial relative min-w-0">
+            <BoutiqueAutocomplete
               value={selectedCholiId}
-              onChange={(e) => setSelectedCholiId(e.target.value)}
-              className="w-full py-2 px-3 rounded-xl text-xs bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] font-semibold focus:outline-none focus:border-[#084C42] cursor-pointer"
-            >
-              <option value="ALL">🗓️ All Vault Outfits ({cholis.length})</option>
-              {cholis.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.sku} - {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedCholiId(val)}
+              options={[
+                { value: 'ALL', label: `🗓️ All Vault Outfits (${cholis.length})`, badge: `${cholis.length} total` },
+                ...cholis.map((c) => ({
+                  value: c._id,
+                  label: `${c.sku} - ${c.name}`,
+                  sublabel: `${c.category} • ₹${(c.rentalPricePerEvent ?? 0).toLocaleString('en-IN')}`,
+                  badge: c.status === 'AVAILABLE' ? 'Available' : c.status === 'AT_DRY_CLEANER' ? 'Dry Cleaning' : c.status === 'IN_ALTERATION' ? 'Alteration' : c.status,
+                })),
+              ]}
+              placeholder="Search by SKU or outfit name..."
+            />
           </div>
 
           {selectedCholiId !== 'ALL' && (
@@ -368,6 +380,14 @@ export function BookingCalendar({ initialCholiFilter = null }: BookingCalendarPr
                   );
                 })}
               </div>
+            ) : isSelectedInDryCleaning ? (
+              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-center space-y-1.5">
+                <AlertTriangle className="w-6 h-6 mx-auto text-amber-600 dark:text-amber-400" />
+                <p className="text-xs font-bold">In Dry Cleaning</p>
+                <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                  {targetCholi?.name} ({targetCholi?.sku}) is currently at the dry cleaner and cannot be booked.
+                </p>
+              </div>
             ) : (
               <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-center space-y-1.5">
                 <CheckCircle2 className="w-6 h-6 mx-auto text-emerald-600 dark:text-emerald-400" />
@@ -382,22 +402,31 @@ export function BookingCalendar({ initialCholiFilter = null }: BookingCalendarPr
           </div>
 
           {/* Action Button */}
-          <button
-            onClick={() => {
-              if (selectedDayStr) {
-                dispatch(setSelectedCalendarDate(selectedDayStr));
-              }
-              dispatch(openBookingModal(selectedCholiId === 'ALL' ? null : selectedCholiId));
-            }}
-            className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-[#084C42] to-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/40 hover:opacity-95 shadow-md transition-all flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-[#DFBD76]" />
-            <span>
-              {selectedDayBookings && selectedDayBookings.length > 0
-                ? `Book Another Outfit for ${new Date(selectedDayStr || '').toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`
-                : 'Create New Booking for this Date'}
-            </span>
-          </button>
+          {isSelectedInDryCleaning ? (
+            <button
+              disabled
+              className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-300 dark:border-amber-800/40 opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <span>🧺 Outfit In Dry Cleaning — Booking Disabled</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (selectedDayStr) {
+                  dispatch(setSelectedCalendarDate(selectedDayStr));
+                }
+                dispatch(openBookingModal(selectedCholiId === 'ALL' ? null : selectedCholiId));
+              }}
+              className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-[#084C42] to-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/40 hover:opacity-95 shadow-md transition-all flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-[#DFBD76]" />
+              <span>
+                {selectedDayBookings && selectedDayBookings.length > 0
+                  ? `Book Another Outfit for ${new Date(selectedDayStr || '').toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`
+                  : 'Create New Booking for this Date'}
+              </span>
+            </button>
+          )}
 
         </div>
 

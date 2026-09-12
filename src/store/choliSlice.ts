@@ -29,9 +29,10 @@ const initialState: CholiState = {
 // Async thunk to fetch cholis from MongoDB via API
 export const fetchCholis = createAsyncThunk(
   'cholis/fetchCholis',
-  async (role: string = 'ADMIN', { rejectWithValue }) => {
+  async (role: string | void, { rejectWithValue }) => {
     try {
-      const res = await fetch(`/api/cholis?role=${role}`);
+      const userRole = role || 'ADMIN';
+      const res = await fetch(`/api/cholis?role=${userRole}`);
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Failed to fetch cholis');
@@ -67,9 +68,13 @@ export const createCholiApi = createAsyncThunk(
 // Async thunk to update an existing choli in MongoDB
 export const updateCholiApi = createAsyncThunk(
   'cholis/updateCholiApi',
-  async (updatedCholi: Partial<Choli> & { _id: string }, { rejectWithValue }) => {
+  async (updatedCholi: Partial<Choli> & { _id?: string; sku?: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch(`/api/cholis/${updatedCholi._id}`, {
+      const targetId = updatedCholi._id || updatedCholi.sku;
+      if (!targetId) {
+        throw new Error('Choli ID or SKU is missing');
+      }
+      const res = await fetch(`/api/cholis/${encodeURIComponent(targetId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedCholi),

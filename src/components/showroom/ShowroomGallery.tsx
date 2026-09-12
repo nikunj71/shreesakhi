@@ -16,6 +16,7 @@ import { OutfitPhotoCarousel } from '@/components/showroom/OutfitPhotoCarousel';
 import { DateCheckModal } from '@/components/showroom/DateCheckModal';
 import { CholiQrModal } from '@/components/choli/CholiQrModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+import { UpdateStatusModal } from '@/components/choli/UpdateStatusModal';
 import { CholiGridSkeleton } from '@/components/common/BoutiqueLoader';
 import { CholiCategory, Choli } from '@/types';
 import { 
@@ -41,7 +42,13 @@ import {
   Table,
   LayoutGrid,
   QrCode,
-  Images
+  Images,
+  Shirt,
+  Scissors,
+  Waves,
+  Archive,
+  ShoppingBag,
+  PlusCircle
 } from 'lucide-react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
@@ -53,6 +60,7 @@ import { openInstagram } from '@/lib/instagram';
 interface ShowroomGalleryProps {
   onCheckCalendar: (choliId: string) => void;
   onSwitchToTable?: () => void;
+  onOpenAddModal?: () => void;
 }
 
 const CATEGORIES: (CholiCategory | 'All')[] = [
@@ -64,7 +72,7 @@ const CATEGORIES: (CholiCategory | 'All')[] = [
   'Partywear'
 ];
 
-export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGalleryProps) {
+export function ShowroomGallery({ onCheckCalendar, onSwitchToTable, onOpenAddModal }: ShowroomGalleryProps) {
   const dispatch = useAppDispatch();
   const { items, loading, searchQuery, selectedCategory } = useAppSelector(
     (state) => state.cholis
@@ -76,6 +84,9 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
   const [selectedCholiForDateCheck, setSelectedCholiForDateCheck] = useState<Choli | null>(null);
   const [selectedCholiForQr, setSelectedCholiForQr] = useState<Choli | null>(null);
   const [choliToDelete, setCholiToDelete] = useState<Choli | null>(null);
+  const [selectedCholiForStatus, setSelectedCholiForStatus] = useState<Choli | null>(null);
+
+  const isStaffOrAdmin = currentUser?.role === 'STAFF' || currentUser?.role === 'ADMIN';
 
   // Date availability filter state
   const [filterEventDate, setFilterEventDate] = useState<string>('');
@@ -83,6 +94,8 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
 
   // Helper to check if a choli is available on a specific date
   const isCholiAvailableOnDate = (choliId: string, date: string) => {
+    const choli = items.find((c) => c._id === choliId);
+    if (choli?.status === 'AT_DRY_CLEANER' || choli?.status === 'IN_ALTERATION' || choli?.status === 'RETIRED') return false;
     if (!date) return true;
     const overlap = bookings.find((b) => {
       if (b.status === 'CANCELLED' || b.choliId !== choliId) return false;
@@ -124,6 +137,19 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
   };
 
   const handleBookOutfit = (choliId: string) => {
+    const choli = items.find((c) => c._id === choliId);
+    if (choli?.status === 'AT_DRY_CLEANER') {
+      toast.error(`"${choli.name}" (${choli.sku}) is currently at the dry cleaner and cannot be booked.`);
+      return;
+    }
+    if (choli?.status === 'IN_ALTERATION') {
+      toast.error(`"${choli.name}" (${choli.sku}) is currently under alteration and cannot be booked.`);
+      return;
+    }
+    if (choli?.status === 'RETIRED') {
+      toast.error(`"${choli.name}" (${choli.sku}) is archived and cannot be booked.`);
+      return;
+    }
     if (!currentUser) {
       toast.warning('Staff or Owner sign-in required', {
         description: 'Please sign in with your Staff or Owner account to record customer bookings.'
@@ -260,24 +286,52 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
       {loading && items.length === 0 ? (
         <CholiGridSkeleton />
       ) : filteredItems.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-[#072622] rounded-3xl border border-dashed border-[#EADFC9] dark:border-[#1A3E38] p-6 space-y-2">
-          <CalendarIcon className="w-8 h-8 text-[#DFBD76] mx-auto opacity-50" />
-          <p className="font-serif text-lg text-[#1C1917] dark:text-[#FAF6EC]">
-            {filterEventDate && onlyAvailableOnDate 
-              ? `No outfits are available on ${new Date(filterEventDate).toDateString()}. Try another date!`
-              : 'No cholis found matching your search.'}
-          </p>
-          <button
-            onClick={() => {
-              dispatch(setSearchQuery(''));
-              dispatch(setSelectedCategory('All'));
-              setFilterEventDate('');
-              setOnlyAvailableOnDate(false);
-            }}
-            className="mt-2 text-xs text-[#084C42] dark:text-[#DFBD76] font-bold underline"
-          >
-            Reset all filters
-          </button>
+        <div className="text-center py-16 bg-white dark:bg-[#072622] rounded-3xl border border-dashed border-[#DFBD76]/50 dark:border-[#1A3E38] p-8 space-y-4 max-w-lg mx-auto shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-[#084C42]/10 dark:bg-[#DFBD76]/15 flex items-center justify-center mx-auto text-[#084C42] dark:text-[#DFBD76]">
+            <CalendarIcon className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-serif text-xl font-bold text-[#1C1917] dark:text-[#FAF6EC]">
+              {filterEventDate && onlyAvailableOnDate 
+                ? `No outfits available on ${new Date(filterEventDate).toDateString()}`
+                : items.length === 0
+                ? 'Your Choli Vault is Ready to Catalog'
+                : 'No cholis found matching your search.'}
+            </h3>
+            <p className="text-xs text-[#78716C] dark:text-[#9BB5AF]">
+              {items.length === 0
+                ? 'Start building your royal showroom lookbook by cataloging your first designer choli.'
+                : 'Try adjusting your search query, selecting "All" categories, or resetting the date filter.'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {items.length === 0 && onOpenAddModal && (
+              <button
+                type="button"
+                onClick={onOpenAddModal}
+                className="py-2.5 px-5 rounded-2xl bg-gradient-to-r from-[#084C42] to-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/50 text-xs font-bold shadow-md hover:opacity-95 flex items-center gap-2 transition-all active:scale-95"
+              >
+                <PlusCircle className="w-4 h-4 text-[#DFBD76]" />
+                <span>Catalog First Choli</span>
+              </button>
+            )}
+
+            {items.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  dispatch(setSearchQuery(''));
+                  dispatch(setSelectedCategory('All'));
+                  setFilterEventDate('');
+                  setOnlyAvailableOnDate(false);
+                }}
+                className="text-xs text-[#084C42] dark:text-[#DFBD76] font-bold underline hover:opacity-80"
+              >
+                Reset all filters
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
@@ -307,6 +361,57 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#C5A059] text-stone-950 backdrop-blur-md shadow-sm">
                       {choli.category}
                     </span>
+                    {choli.status === 'AT_DRY_CLEANER' ? (
+                      <button
+                        type="button"
+                        onClick={() => isStaffOrAdmin && setSelectedCholiForStatus(choli)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-600 text-white backdrop-blur-md shadow-sm flex items-center gap-1 ${isStaffOrAdmin ? 'cursor-pointer hover:bg-sky-700' : ''}`}
+                        title={isStaffOrAdmin ? "Staff: Click to update status" : undefined}
+                      >
+                        <Waves className="w-3 h-3" />
+                        <span>Dry Cleaning</span>
+                      </button>
+                    ) : choli.status === 'IN_ALTERATION' ? (
+                      <button
+                        type="button"
+                        onClick={() => isStaffOrAdmin && setSelectedCholiForStatus(choli)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white backdrop-blur-md shadow-sm flex items-center gap-1 ${isStaffOrAdmin ? 'cursor-pointer hover:bg-amber-700' : ''}`}
+                        title={isStaffOrAdmin ? "Staff: Click to update status" : undefined}
+                      >
+                        <Scissors className="w-3 h-3" />
+                        <span>In Alteration</span>
+                      </button>
+                    ) : choli.status === 'RENTED' ? (
+                      <button
+                        type="button"
+                        onClick={() => isStaffOrAdmin && setSelectedCholiForStatus(choli)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#084C42] text-[#FAF6EC] backdrop-blur-md shadow-sm flex items-center gap-1 ${isStaffOrAdmin ? 'cursor-pointer hover:bg-[#0D5C51]' : ''}`}
+                        title={isStaffOrAdmin ? "Staff: Click to update status" : undefined}
+                      >
+                        <ShoppingBag className="w-3 h-3 text-[#DFBD76]" />
+                        <span>Rented</span>
+                      </button>
+                    ) : choli.status === 'RETIRED' ? (
+                      <button
+                        type="button"
+                        onClick={() => isStaffOrAdmin && setSelectedCholiForStatus(choli)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-stone-600 text-white backdrop-blur-md shadow-sm flex items-center gap-1 ${isStaffOrAdmin ? 'cursor-pointer hover:bg-stone-700' : ''}`}
+                        title={isStaffOrAdmin ? "Staff: Click to update status" : undefined}
+                      >
+                        <Archive className="w-3 h-3" />
+                        <span>Archived</span>
+                      </button>
+                    ) : isStaffOrAdmin ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCholiForStatus(choli)}
+                        className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider bg-emerald-700/85 hover:bg-emerald-700 text-white backdrop-blur-md border border-emerald-400/40 shadow-sm flex items-center gap-1 cursor-pointer"
+                        title="Staff: Click to update status (Cleaning, Alteration, etc.)"
+                      >
+                        <Sparkles className="w-2.5 h-2.5 text-[#DFBD76]" />
+                        <span>Available</span>
+                      </button>
+                    ) : null}
                   </div>
 
                   {/* Date Availability Indicator Badge (Only shown when an event date is actively being checked) */}
@@ -409,13 +514,67 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
 
                   {/* Action Buttons with Check Date Modal Trigger */}
                   <div className="pt-2 flex items-center gap-2">
-                    <button
-                      onClick={() => handleBookOutfit(choli._id)}
-                      className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-[#084C42] to-[#0D6357] text-white hover:opacity-95 shadow-md shadow-[#084C42]/25 flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      <span>Book Outfit</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                    {choli.status === 'AT_DRY_CLEANER' ? (
+                      <button
+                        type="button"
+                        onClick={() => isStaffOrAdmin && setSelectedCholiForStatus(choli)}
+                        className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border border-sky-300 dark:border-sky-800/50 flex items-center justify-center gap-1.5 ${
+                          isStaffOrAdmin ? 'cursor-pointer hover:bg-sky-200 dark:hover:bg-sky-900/60' : 'cursor-not-allowed opacity-90'
+                        }`}
+                        title={isStaffOrAdmin ? "Click to update status (e.g. mark Available when returned from laundry)" : "This choli is currently at the dry cleaner and cannot be booked"}
+                      >
+                        <Waves className="w-3.5 h-3.5" />
+                        <span>🧺 In Dry Cleaning</span>
+                        {isStaffOrAdmin && <span className="text-[10px] font-normal underline ml-1">(Update)</span>}
+                      </button>
+                    ) : choli.status === 'IN_ALTERATION' ? (
+                      <button
+                        type="button"
+                        onClick={() => isStaffOrAdmin && setSelectedCholiForStatus(choli)}
+                        className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-300 dark:border-amber-800/50 flex items-center justify-center gap-1.5 ${
+                          isStaffOrAdmin ? 'cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/60' : 'cursor-not-allowed opacity-90'
+                        }`}
+                        title={isStaffOrAdmin ? "Click to update status (e.g. mark Available when tailoring is done)" : "This choli is currently under alteration"}
+                      >
+                        <Scissors className="w-3.5 h-3.5" />
+                        <span>🪡 In Alteration</span>
+                        {isStaffOrAdmin && <span className="text-[10px] font-normal underline ml-1">(Update)</span>}
+                      </button>
+                    ) : choli.status === 'RETIRED' ? (
+                      <button
+                        type="button"
+                        onClick={() => isStaffOrAdmin && setSelectedCholiForStatus(choli)}
+                        className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-300 dark:border-stone-700 flex items-center justify-center gap-1.5 ${
+                          isStaffOrAdmin ? 'cursor-pointer hover:bg-stone-200' : 'cursor-not-allowed opacity-90'
+                        }`}
+                        title={isStaffOrAdmin ? "Click to update status" : "This choli is archived"}
+                      >
+                        <Archive className="w-3.5 h-3.5" />
+                        <span>📦 Archived</span>
+                        {isStaffOrAdmin && <span className="text-[10px] font-normal underline ml-1">(Update)</span>}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleBookOutfit(choli._id)}
+                        className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-[#084C42] to-[#0D6357] text-white hover:opacity-95 shadow-md shadow-[#084C42]/25 flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <span>Book Outfit</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    {/* Staff / Admin Quick Status Update Trigger Button */}
+                    {isStaffOrAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCholiForStatus(choli)}
+                        className="p-2.5 rounded-xl border border-[#DFBD76]/60 hover:bg-[#DFBD76]/20 bg-[#FAF8F5] dark:bg-[#0A2E28] text-[#084C42] dark:text-[#DFBD76] transition-all shadow-sm active:scale-95"
+                        title="Staff: Update Outfit Status (Dry Cleaning, Alteration, Available, Rented)"
+                        aria-label="Update Choli Status"
+                      >
+                        <Shirt className="w-4 h-4" />
+                      </button>
+                    )}
 
                     {/* Instant Check Date Availability Button */}
                     <button
@@ -489,6 +648,13 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
         onClose={() => setSelectedCholiForQr(null)}
       />
 
+      {/* Staff / Admin Update Choli Status Modal */}
+      <UpdateStatusModal
+        choli={selectedCholiForStatus}
+        isOpen={Boolean(selectedCholiForStatus)}
+        onClose={() => setSelectedCholiForStatus(null)}
+      />
+
       {/* Custom Confirmation Popup for Deleting Outfit */}
       <ConfirmationModal
         isOpen={Boolean(choliToDelete)}
@@ -520,14 +686,14 @@ export function ShowroomGallery({ onCheckCalendar, onSwitchToTable }: ShowroomGa
       {/* Fullscreen Lightbox Modal */}
       {lightboxImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 cursor-pointer"
           onClick={() => setLightboxImage(null)}
         >
-          <div className="relative max-w-3xl w-full max-h-[92vh] flex items-center justify-center">
+          <div className="relative max-w-3xl w-full max-h-[92dvh] flex items-center justify-center">
             <img
               src={lightboxImage}
               alt="Expanded preview"
-              className="max-h-[88vh] w-auto rounded-3xl shadow-2xl object-contain border border-white/20"
+              className="max-h-[88dvh] w-auto rounded-3xl shadow-2xl object-contain border border-white/20"
             />
           </div>
         </div>

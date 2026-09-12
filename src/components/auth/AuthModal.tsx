@@ -97,11 +97,11 @@ export function AuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-md bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-6">
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="relative w-full max-w-md bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-auto max-h-[calc(100dvh-1.5rem)] flex flex-col">
         
         {/* Header Banner */}
-        <div className="bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-6 text-white text-center relative">
+        <div className="flex-shrink-0 bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-5 sm:p-6 text-white text-center relative">
           <button
             onClick={() => dispatch(closeAuthModal())}
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
@@ -109,7 +109,7 @@ export function AuthModal() {
             <X className="w-4 h-4" />
           </button>
 
-          <div className="h-16 px-4 py-1.5 mx-auto rounded-2xl border-2 border-[#DFBD76] shadow-xl bg-[#025151] inline-flex items-center justify-center">
+          <div className="h-14 sm:h-16 px-4 py-1.5 mx-auto rounded-2xl border-2 border-[#DFBD76] shadow-xl bg-[#025151] inline-flex items-center justify-center">
             <img src="/logo-cropped.png" alt="श्री SAKHI BOUTIQUE" className="h-full w-auto object-contain" />
           </div>
           <p className="text-[11px] text-[#DFBD76] mt-2 font-semibold tracking-wider uppercase">
@@ -144,7 +144,7 @@ export function AuthModal() {
         </div>
 
         {/* Modal Body */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar">
           {currentUser && (
             <div className="mb-5 p-3.5 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] flex items-center justify-between">
               <div className="flex items-center gap-2.5">

@@ -84,11 +84,11 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static select-none sm:select-auto"
+      className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static select-none sm:select-auto"
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-3xl bg-white dark:bg-[#072622] rounded-2xl sm:rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-2 sm:my-6 max-h-[96vh] sm:max-h-[92vh] flex flex-col print:border-none print:shadow-none print:my-0 print:rounded-none print:w-full print:max-h-none print:overflow-visible print:block"
+        className="relative w-full max-w-3xl bg-white dark:bg-[#072622] rounded-2xl sm:rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-auto max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2.5rem)] flex flex-col print:border-none print:shadow-none print:my-0 print:rounded-none print:w-full print:max-h-none print:overflow-visible print:block"
         onClick={(e) => e.stopPropagation()}
       >
         

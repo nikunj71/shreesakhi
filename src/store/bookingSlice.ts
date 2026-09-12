@@ -141,12 +141,37 @@ export const updateDepositRefundApi = createAsyncThunk(
   }
 );
 
+// Async thunk to delete a booking from MongoDB
+export const deleteBookingApi = createAsyncThunk(
+  'bookings/deleteBookingApi',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`/api/bookings?id=${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to delete booking');
+      }
+      return { id: data.deletedId || id, choli: data.choli };
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Error deleting booking');
+    }
+  }
+);
+
 export const bookingSlice = createSlice({
   name: 'bookings',
   initialState,
   reducers: {
     setBookings: (state, action: PayloadAction<Booking[]>) => {
       state.items = action.payload;
+      saveStoredBookings(state.items);
+    },
+    deleteBooking: (state, action: PayloadAction<string>) => {
+      state.items = state.items.filter(
+        (b) => b._id !== action.payload && b.bookingNumber !== action.payload
+      );
       saveStoredBookings(state.items);
     },
     addBooking: (state, action: PayloadAction<Booking>) => {
@@ -249,6 +274,12 @@ export const bookingSlice = createSlice({
           state.items[idx] = action.payload;
           saveStoredBookings(state.items);
         }
+      })
+      .addCase(deleteBookingApi.fulfilled, (state, action) => {
+        state.items = state.items.filter(
+          (b) => b._id !== action.payload.id && b.bookingNumber !== action.payload.id
+        );
+        saveStoredBookings(state.items);
       });
   },
 });
@@ -256,6 +287,7 @@ export const bookingSlice = createSlice({
 export const {
   setBookings,
   addBooking,
+  deleteBooking,
   updateBookingPayment,
   updateBookingStatus,
   updateDepositRefund,

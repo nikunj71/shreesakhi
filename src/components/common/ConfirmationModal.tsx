@@ -108,13 +108,13 @@ export function ConfirmationModal({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
       onClick={!isLoading ? onClose : undefined}
       aria-modal="true"
       role="dialog"
     >
       <div 
-        className={`bg-white dark:bg-[#072622] rounded-3xl border ${typeConfig.borderColor} max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 text-center transform animate-in zoom-in-95 duration-200 relative my-auto`}
+        className={`bg-white dark:bg-[#072622] rounded-3xl border ${typeConfig.borderColor} max-w-md w-full p-5 sm:p-7 shadow-2xl space-y-4 sm:space-y-5 text-center transform animate-in zoom-in-95 duration-200 relative my-auto max-h-[calc(100dvh-1.5rem)] flex flex-col overflow-y-auto custom-scrollbar`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

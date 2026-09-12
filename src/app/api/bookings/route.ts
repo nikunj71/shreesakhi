@@ -30,6 +30,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
     }
 
+    // Check if outfit is currently at the dry cleaner
+    const choliIsObjectId = body.choliId && body.choliId.match(/^[0-9a-fA-F]{24}$/);
+    const targetCholi = await Choli.findOne({
+      $or: [
+        ...(choliIsObjectId ? [{ _id: body.choliId }] : []),
+        { sku: body.choliSku },
+      ],
+    });
+
+    if (targetCholi && targetCholi.status === 'AT_DRY_CLEANER') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Outfit "${targetCholi.name}" (${targetCholi.sku}) is currently at the dry cleaner and cannot be booked.`,
+        },
+        { status: 400 }
+      );
+    }
+
     // Check for overlapping dates if outfit is not cancelled
     const existingOverlap = await Booking.findOne({
       $or: [
@@ -52,7 +71,20 @@ export async function POST(request: Request) {
     }
 
     // Clean client-provided _id if it's a temporary timestamp
-    const { _id, ...bookingData } = body;
+    const { _id, ...bookingPayload } = body;
+    const rentAmount = Number(bookingPayload.rentAmount || 0);
+    const securityDeposit = Number(bookingPayload.securityDeposit || 0);
+    const discount = Number(bookingPayload.discount || 0);
+    const calculatedFinalTotal = Math.max(0, rentAmount + securityDeposit - discount);
+
+    const bookingData = {
+      ...bookingPayload,
+      rentAmount,
+      securityDeposit,
+      discount,
+      finalTotal: bookingPayload.finalTotal !== undefined ? Number(bookingPayload.finalTotal) : calculatedFinalTotal,
+      advanceAmount: Number(bookingPayload.advanceAmount || 0),
+    };
     const newBooking = await Booking.create(bookingData);
 
     // If payment is cleared or advance paid upon booking, update Choli totalEarnedFromRent
@@ -155,16 +187,57 @@ export async function DELETE(request: Request) {
     const conn = await dbConnect();
     if (conn) {
       const isObjectId = id.match(/^[0-9a-fA-F]{24}$/);
-      await Booking.findOneAndDelete({
+      const booking = await Booking.findOne({
         $or: [
           ...(isObjectId ? [{ _id: id }] : []),
           { bookingNumber: id },
         ],
       });
-      return NextResponse.json({ success: true, message: `Booking ${id} deleted` });
+
+      if (!booking) {
+        return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
+      }
+
+      // Ensure the booking's rent amount is calculated into recovering the choli's total cost
+      const rentAmount = Number(booking.rentAmount || 0);
+      const previouslyCredited = booking.paymentStatus === 'PARTIAL'
+        ? Math.min(rentAmount, Number(booking.advanceAmount || 0))
+        : (booking.paymentStatus === 'CLEARED' ? rentAmount : 0);
+      const remainingToCredit = Math.max(0, rentAmount - previouslyCredited);
+
+      const choliIsObjectId = booking.choliId && booking.choliId.match(/^[0-9a-fA-F]{24}$/);
+      const choli = await Choli.findOne({
+        $or: [
+          ...(choliIsObjectId ? [{ _id: booking.choliId }] : []),
+          { sku: booking.choliSku },
+        ],
+      });
+
+      let updatedCholi = null;
+      if (choli) {
+        if (remainingToCredit > 0) {
+          choli.totalEarnedFromRent = (choli.totalEarnedFromRent || 0) + remainingToCredit;
+        }
+        choli.isBreakEvenReached = (choli.totalEarnedFromRent || 0) >= (choli.totalCosting || 0);
+        await choli.save();
+        updatedCholi = {
+          _id: choli._id.toString(),
+          totalEarnedFromRent: choli.totalEarnedFromRent,
+          isBreakEvenReached: choli.isBreakEvenReached,
+        };
+      }
+
+      await Booking.findByIdAndDelete(booking._id);
+
+      return NextResponse.json({
+        success: true,
+        message: `Booking ${booking.bookingNumber} deleted; ₹${rentAmount} calculated into choli recovery`,
+        deletedId: booking._id.toString(),
+        choli: updatedCholi,
+      });
     }
 
-    return NextResponse.json({ success: true, message: 'Deleted locally' });
+    return NextResponse.json({ success: true, message: 'Deleted locally', deletedId: id });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

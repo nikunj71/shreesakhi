@@ -8,10 +8,11 @@ import {
   updateDepositRefund,
   updateBookingPaymentApi,
   updateBookingStatusApi,
-  updateDepositRefundApi
+  updateDepositRefundApi,
+  deleteBookingApi
 } from '@/store/bookingSlice';
-import { recordRentalEarnings } from '@/store/choliSlice';
-import { BookingStatus, DepositRefundStatus } from '@/types';
+import { recordRentalEarnings, fetchCholis, updateCholiApi } from '@/store/choliSlice';
+import { BookingStatus, DepositRefundStatus, Choli } from '@/types';
 import { 
   ClipboardList, 
   Search, 
@@ -21,21 +22,31 @@ import {
   Clock, 
   RotateCcw, 
   CreditCard,
-  Receipt
+  Receipt,
+  Trash2,
+  Shirt,
+  Waves,
+  Scissors
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InvoiceModal } from '@/components/invoice/InvoiceModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+import { UpdateStatusModal } from '@/components/choli/UpdateStatusModal';
+import { BookingsListSkeleton } from '@/components/common/BoutiqueLoader';
+import { BoutiqueAutocomplete } from '@/components/common/BoutiqueAutocomplete';
 
 export function BookingsList() {
   const dispatch = useAppDispatch();
-  const bookings = useAppSelector((state) => state.bookings.items);
+  const { items: bookings, loading: bookingsLoading } = useAppSelector((state) => state.bookings);
+  const cholis = useAppSelector((state) => state.cholis.items);
   const { currentUser } = useAppSelector((state) => state.auth);
 
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<any | null>(null);
   const [bookingToCancel, setBookingToCancel] = useState<{ bookingId: string; booking: any } | null>(null);
+  const [bookingToDelete, setBookingToDelete] = useState<any | null>(null);
+  const [statusCholi, setStatusCholi] = useState<Choli | null>(null);
 
   const filtered = bookings.filter((b) => {
     const matchesSearch =
@@ -72,8 +83,8 @@ export function BookingsList() {
   };
 
   const handleStatusChange = (bookingId: string, status: BookingStatus) => {
+    const target = bookings.find((b) => b._id === bookingId);
     if (status === 'CANCELLED') {
-      const target = bookings.find((b) => b._id === bookingId);
       if (target) {
         setBookingToCancel({ bookingId, booking: target });
         return;
@@ -82,6 +93,18 @@ export function BookingsList() {
     const returnDate = status === 'RETURNED' ? new Date().toISOString().split('T')[0] : undefined;
     dispatch(updateBookingStatusApi({ id: bookingId, status, returnDate }));
     toast.success(`Booking status updated to ${status} in MongoDB`);
+
+    if (status === 'RETURNED' && target) {
+      const targetCholi = cholis.find((c) => c._id === target.choliId || c.sku === target.choliSku);
+      if (targetCholi) {
+        toast.info(`Outfit returned! Update ${targetCholi.sku} status?`, {
+          action: {
+            label: 'Laundry / Alteration',
+            onClick: () => setStatusCholi(targetCholi),
+          },
+        });
+      }
+    }
   };
 
   const handleDepositChange = (bookingId: string, status: DepositRefundStatus) => {
@@ -125,27 +148,32 @@ export function BookingsList() {
               placeholder="Search booking, phone, name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] placeholder-[#78716C] dark:placeholder-[#9BB5AF] focus:outline-none focus:border-[#084C42]"
+              className="w-full pl-9 pr-3 py-2.5 rounded-2xl text-xs sm:text-sm bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] placeholder-[#78716C] dark:placeholder-[#9BB5AF] focus:outline-none focus:border-[#084C42] shadow-sm"
             />
           </div>
 
-          {/* Status Filter */}
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="w-full sm:w-auto py-2 px-3 rounded-xl text-xs bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC]"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="CONFIRMED">Confirmed</option>
-            <option value="PICKED_UP">Picked Up</option>
-            <option value="RETURNED">Returned</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
+          {/* Status Filter Autocomplete */}
+          <div className="w-full sm:w-52">
+            <BoutiqueAutocomplete
+              value={filterStatus}
+              onChange={(val) => setFilterStatus(val)}
+              options={[
+                { value: 'ALL', label: 'All Statuses' },
+                { value: 'CONFIRMED', label: 'Confirmed (Scheduled)', badge: 'Confirmed' },
+                { value: 'PICKED_UP', label: 'Picked Up (With Customer)', badge: 'Active' },
+                { value: 'RETURNED', label: 'Returned (At Boutique)', badge: 'Returned' },
+                { value: 'CANCELLED', label: 'Cancelled', badge: 'Cancelled' },
+              ]}
+              placeholder="Filter Status..."
+            />
+          </div>
         </div>
       </div>
 
       {/* Bookings Table / Card List */}
-      {filtered.length === 0 ? (
+      {bookingsLoading && bookings.length === 0 ? (
+        <BookingsListSkeleton count={5} />
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-[#072622] rounded-2xl border border-dashed border-[#EADFC9] dark:border-[#1A3E38] text-[#78716C]">
           <p className="font-serif text-base text-[#1C1917] dark:text-[#FAF6EC]">No bookings match your search query.</p>
         </div>
@@ -288,36 +316,54 @@ export function BookingsList() {
                   </div>
                 )}
 
-                {/* Order Status Select */}
-                <select
-                  value={b.status}
-                  onChange={(e) => handleStatusChange(b._id, e.target.value as BookingStatus)}
-                  className={`py-1.5 px-3 rounded-xl text-xs font-bold border transition-all ${
-                    b.status === 'RETURNED'
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
-                      : b.status === 'PICKED_UP'
-                      ? 'bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800'
-                      : 'bg-[#FAF8F5] text-[#1C1917] border-[#EADFC9] dark:bg-[#041A17] dark:text-[#FAF6EC] dark:border-[#1A3E38]'
-                  }`}
-                >
-                  <option value="CONFIRMED">CONFIRMED (Scheduled)</option>
-                  <option value="PICKED_UP">PICKED UP (With Customer)</option>
-                  <option value="RETURNED">RETURNED (At Boutique)</option>
-                  <option value="CANCELLED">CANCELLED</option>
-                </select>
+                {/* Order Status Autocomplete */}
+                <div className="w-full sm:w-56">
+                  <BoutiqueAutocomplete
+                    value={b.status}
+                    onChange={(val) => handleStatusChange(b._id, val as BookingStatus)}
+                    options={[
+                      { value: 'CONFIRMED', label: 'CONFIRMED (Scheduled)', badge: 'Confirmed' },
+                      { value: 'PICKED_UP', label: 'PICKED UP (Customer)', badge: 'Active' },
+                      { value: 'RETURNED', label: 'RETURNED (Boutique)', badge: 'Returned' },
+                      { value: 'CANCELLED', label: 'CANCELLED', badge: 'Cancelled' },
+                    ]}
+                    placeholder="Order Status..."
+                  />
+                </div>
 
-                {/* Deposit Refund Action */}
+                {/* Deposit Refund Action Autocomplete */}
                 {b.status === 'RETURNED' && (
-                  <select
-                    value={b.depositRefundStatus}
-                    onChange={(e) => handleDepositChange(b._id, e.target.value as DepositRefundStatus)}
-                    className="py-1 px-2 rounded-lg text-xs bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC]"
-                  >
-                    <option value="HOLD">Deposit: HOLD</option>
-                    <option value="REFUNDED_FULL">Refunded Full</option>
-                    <option value="DEDUCTED">Deducted (Damage)</option>
-                  </select>
+                  <div className="w-full sm:w-48">
+                    <BoutiqueAutocomplete
+                      value={b.depositRefundStatus}
+                      onChange={(val) => handleDepositChange(b._id, val as DepositRefundStatus)}
+                      options={[
+                        { value: 'HOLD', label: 'Deposit: HOLD', badge: 'Hold' },
+                        { value: 'REFUNDED_FULL', label: 'Refunded Full (100%)', badge: 'Full Refund' },
+                        { value: 'DEDUCTED', label: 'Deducted (Damage Fee)', badge: 'Deducted' },
+                      ]}
+                      placeholder="Deposit Action..."
+                    />
+                  </div>
                 )}
+
+                {/* Choli Status (Cleaning / Alteration / Available) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const foundCholi = cholis.find((c) => c._id === b.choliId || c.sku === b.choliSku);
+                    if (foundCholi) {
+                      setStatusCholi(foundCholi);
+                    } else {
+                      toast.error(`Outfit ${b.choliSku} not found in inventory.`);
+                    }
+                  }}
+                  className="py-1.5 px-2.5 rounded-xl text-xs font-semibold bg-[#FAF8F5] dark:bg-[#041A17] border border-[#DFBD76]/60 hover:bg-[#DFBD76]/20 text-[#084C42] dark:text-[#DFBD76] shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
+                  title="Update Choli Status (Laundry, Alteration, Available, etc.)"
+                >
+                  <Shirt className="w-3.5 h-3.5 text-[#DFBD76]" />
+                  <span className="hidden sm:inline">Choli Status</span>
+                </button>
 
                 {/* WhatsApp Quick Message */}
                 <button
@@ -338,6 +384,16 @@ export function BookingsList() {
                   <span>Invoice</span>
                 </button>
 
+                {/* Delete Booking Button */}
+                <button
+                  onClick={() => setBookingToDelete(b)}
+                  className="py-1.5 px-2.5 rounded-xl border border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 font-bold text-xs flex items-center gap-1 shadow-sm transition-all"
+                  title="Delete Booking (Amount will be calculated into choli recovery)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+
               </div>
             </div>
           ))}
@@ -349,6 +405,13 @@ export function BookingsList() {
         booking={selectedInvoiceBooking}
         isOpen={!!selectedInvoiceBooking}
         onClose={() => setSelectedInvoiceBooking(null)}
+      />
+
+      {/* Staff / Admin Update Choli Status Modal */}
+      <UpdateStatusModal
+        choli={statusCholi}
+        isOpen={Boolean(statusCholi)}
+        onClose={() => setStatusCholi(null)}
       />
 
       {/* Custom Confirmation Popup for Cancelling Booking */}
@@ -376,6 +439,48 @@ export function BookingsList() {
             { label: 'Event Date', value: bookingToCancel.booking.eventDate },
             { label: 'Total Payable', value: `₹${(bookingToCancel.booking.finalTotal ?? 0).toLocaleString('en-IN')}` },
             ...(bookingToCancel.booking.advanceAmount ? [{ label: 'Advance Paid', value: `₹${Number(bookingToCancel.booking.advanceAmount).toLocaleString('en-IN')}` }] : []),
+          ]
+        } : undefined}
+      />
+
+      {/* Custom Confirmation Popup for Deleting Booking & Calculating Recovery */}
+      <ConfirmationModal
+        isOpen={Boolean(bookingToDelete)}
+        onClose={() => setBookingToDelete(null)}
+        onConfirm={async () => {
+          if (bookingToDelete) {
+            const rentAmount = Number(bookingToDelete.rentAmount || 0);
+            const previouslyCredited = bookingToDelete.paymentStatus === 'PARTIAL'
+              ? Math.min(rentAmount, Number(bookingToDelete.advanceAmount || 0))
+              : (bookingToDelete.paymentStatus === 'CLEARED' ? rentAmount : 0);
+            const remainingToCredit = Math.max(0, rentAmount - previouslyCredited);
+
+            await dispatch(deleteBookingApi(bookingToDelete._id));
+            if (remainingToCredit > 0) {
+              dispatch(recordRentalEarnings({ choliId: bookingToDelete.choliId, amount: remainingToCredit }));
+            }
+            dispatch(fetchCholis(currentUser?.role || 'ADMIN'));
+            toast.success(
+              `Booking ${bookingToDelete.bookingNumber} deleted! Rent of ₹${rentAmount.toLocaleString('en-IN')} calculated into ${bookingToDelete.choliSku} recovery.`
+            );
+            setBookingToDelete(null);
+          }
+        }}
+        title="Delete Booking Order?"
+        description={`Are you sure you want to delete booking ${bookingToDelete?.bookingNumber} for ${bookingToDelete?.customer?.name}? The booking rent of ₹${Number(bookingToDelete?.rentAmount || 0).toLocaleString('en-IN')} will be calculated into the recovery of ${bookingToDelete?.choliSku} total cost.`}
+        confirmText="Yes, Delete & Calculate Recovery"
+        cancelText="No, Keep Booking"
+        type="danger"
+        itemPreview={bookingToDelete ? {
+          title: bookingToDelete.customer.name,
+          badge: bookingToDelete.bookingNumber,
+          subtitle: bookingToDelete.choliName,
+          image: bookingToDelete.choliImage,
+          details: [
+            { label: 'Choli SKU', value: bookingToDelete.choliSku },
+            { label: 'Event Date', value: bookingToDelete.eventDate },
+            { label: 'Rent (Calculated in Recovery)', value: `₹${Number(bookingToDelete.rentAmount || 0).toLocaleString('en-IN')}` },
+            { label: 'Payment Status', value: bookingToDelete.paymentStatus },
           ]
         } : undefined}
       />

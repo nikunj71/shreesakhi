@@ -6,9 +6,14 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { toggleTheme, openAuthModal } from '@/store/authSlice';
 import { Choli } from '@/types';
 import { openBookingModal, fetchBookings } from '@/store/bookingSlice';
+import { fetchCholis } from '@/store/choliSlice';
+import { getStoredCholis } from '@/lib/storage';
 import { CholiQrModal } from '@/components/choli/CholiQrModal';
+import { UpdateStatusModal } from '@/components/choli/UpdateStatusModal';
+import { AddCholiModal } from '@/components/admin/AddCholiModal';
 import { BookingModal } from '@/components/booking/BookingModal';
 import { AuthModal } from '@/components/auth/AuthModal';
+import { CholiDetailSkeleton } from '@/components/common/BoutiqueLoader';
 import { 
   ArrowLeft, 
   Calendar as CalendarIcon, 
@@ -31,7 +36,13 @@ import {
   ChevronRight,
   Maximize2,
   X,
-  ZoomIn
+  ZoomIn,
+  AlertTriangle,
+  Shirt,
+  Waves,
+  Archive,
+  ShoppingBag,
+  Edit3
 } from 'lucide-react';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -57,25 +68,52 @@ const ANGLE_LABELS = [
 
 export default function CholiDetailsPage({ params }: CholiPageProps) {
   const resolvedParams = use(params);
-  const choliId = resolvedParams.id;
+  const rawId = resolvedParams?.id || '';
+  const decodedId = decodeURIComponent(rawId).trim();
 
   const dispatch = useAppDispatch();
-  const cholis = useAppSelector((state) => state.cholis.items);
+  const { items: cholis, loading: cholisLoading } = useAppSelector((state) => state.cholis);
   const bookings = useAppSelector((state) => state.bookings.items);
   const { currentUser, theme } = useAppSelector((state) => state.auth);
   const isDark = theme === 'dark';
 
   const [remoteCholi, setRemoteCholi] = useState<Choli | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [localCholis, setLocalCholis] = useState<Choli[]>([]);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
-  // Find choli in Redux state or dynamically fetched from MongoDB
-  const storeCholi = cholis.find((c) => c._id === choliId || c.sku === choliId);
+  // Immediately read from localStorage on client
+  useEffect(() => {
+    const stored = getStoredCholis();
+    if (stored && stored.length > 0) {
+      setLocalCholis(stored);
+    }
+  }, []);
+
+  // Check Redux state first, then localStorage fallback
+  const findMatch = (list: Choli[]) =>
+    list.find(
+      (c) =>
+        c._id === rawId ||
+        c._id === decodedId ||
+        (c.sku && c.sku.toLowerCase() === rawId.toLowerCase()) ||
+        (c.sku && c.sku.toLowerCase() === decodedId.toLowerCase())
+    );
+
+  const storeCholi = findMatch(cholis) || findMatch(localCholis);
   const choli = storeCholi || remoteCholi;
 
   useEffect(() => {
-    if (!storeCholi) {
-      setIsLoading(true);
-      fetch(`/api/cholis/${choliId}`)
+    if (cholis.length === 0) {
+      dispatch(fetchCholis(currentUser?.role || 'GUEST'));
+    }
+    if (bookings.length === 0) {
+      dispatch(fetchBookings());
+    }
+  }, [dispatch, cholis.length, bookings.length, currentUser?.role]);
+
+  useEffect(() => {
+    if (!storeCholi && rawId) {
+      fetch(`/api/cholis/${encodeURIComponent(decodedId)}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success && data.data) {
@@ -83,20 +121,24 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
           }
         })
         .catch(console.error)
-        .finally(() => setIsLoading(false));
+        .finally(() => {
+          setHasAttemptedFetch(true);
+        });
+    } else if (storeCholi) {
+      setHasAttemptedFetch(true);
     }
-  }, [choliId, storeCholi]);
+  }, [decodedId, rawId, storeCholi]);
 
-  useEffect(() => {
-    if (bookings.length === 0) {
-      dispatch(fetchBookings());
-    }
-  }, [dispatch, bookings.length]);
+  const isLoading = !choli && (!hasAttemptedFetch || cholisLoading);
 
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [lightboxImageIdx, setLightboxImageIdx] = useState<number | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [checkEventDate, setCheckEventDate] = useState<string>('');
+
+  const isStaffOrAdmin = currentUser?.role === 'STAFF' || currentUser?.role === 'ADMIN';
 
   const safeImages = choli?.images && choli.images.length > 0 
     ? choli.images 
@@ -120,14 +162,7 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
   }, [handleKeyDown]);
 
   if (isLoading && !choli) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-4 bg-[#FAF8F5] dark:bg-[#041A17]">
-        <div className="w-12 h-12 rounded-full border-3 border-[#DFBD76] border-t-transparent animate-spin" />
-        <p className="font-serif text-sm font-bold text-[#084C42] dark:text-[#DFBD76]">
-          Loading Choli from Shree Sakhi Vault...
-        </p>
-      </div>
-    );
+    return <CholiDetailSkeleton />;
   }
 
   if (!choli) {
@@ -162,6 +197,10 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
     : null;
 
   const handleBookOutfit = () => {
+    if (choli.status === 'AT_DRY_CLEANER') {
+      toast.error(`"${choli.name}" (${choli.sku}) is currently at the dry cleaner and cannot be booked.`);
+      return;
+    }
     if (!currentUser) {
       toast.warning('Staff or Owner sign-in required', {
         description: 'Please sign in with your Staff or Owner account to record customer bookings.'
@@ -325,6 +364,57 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
                   <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#DFBD76] text-[#041A17] shadow-md">
                     {choli.category}
                   </span>
+                  {choli.status === 'AT_DRY_CLEANER' ? (
+                    <button
+                      type="button"
+                      onClick={() => isStaffOrAdmin && setIsStatusModalOpen(true)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-sky-600 text-white shadow-md flex items-center gap-1.5 ${isStaffOrAdmin ? 'cursor-pointer hover:bg-sky-700' : ''}`}
+                      title={isStaffOrAdmin ? "Staff: Click to update status" : undefined}
+                    >
+                      <Waves className="w-3.5 h-3.5" />
+                      <span>Dry Cleaning</span>
+                    </button>
+                  ) : choli.status === 'IN_ALTERATION' ? (
+                    <button
+                      type="button"
+                      onClick={() => isStaffOrAdmin && setIsStatusModalOpen(true)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-600 text-white shadow-md flex items-center gap-1.5 ${isStaffOrAdmin ? 'cursor-pointer hover:bg-amber-700' : ''}`}
+                      title={isStaffOrAdmin ? "Staff: Click to update status" : undefined}
+                    >
+                      <Scissors className="w-3.5 h-3.5" />
+                      <span>In Alteration</span>
+                    </button>
+                  ) : choli.status === 'RENTED' ? (
+                    <button
+                      type="button"
+                      onClick={() => isStaffOrAdmin && setIsStatusModalOpen(true)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#084C42] text-[#FAF6EC] shadow-md flex items-center gap-1.5 ${isStaffOrAdmin ? 'cursor-pointer hover:bg-[#0D5C51]' : ''}`}
+                      title={isStaffOrAdmin ? "Staff: Click to update status" : undefined}
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5 text-[#DFBD76]" />
+                      <span>Rented</span>
+                    </button>
+                  ) : choli.status === 'RETIRED' ? (
+                    <button
+                      type="button"
+                      onClick={() => isStaffOrAdmin && setIsStatusModalOpen(true)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-stone-600 text-white shadow-md flex items-center gap-1.5 ${isStaffOrAdmin ? 'cursor-pointer hover:bg-stone-700' : ''}`}
+                      title={isStaffOrAdmin ? "Staff: Click to update status" : undefined}
+                    >
+                      <Archive className="w-3.5 h-3.5" />
+                      <span>Archived</span>
+                    </button>
+                  ) : isStaffOrAdmin ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsStatusModalOpen(true)}
+                      className="px-3 py-1 rounded-full text-xs font-bold tracking-wider bg-emerald-700/85 hover:bg-emerald-700 text-white shadow-md flex items-center gap-1.5 cursor-pointer"
+                      title="Staff: Click to update status (Cleaning, Alteration, etc.)"
+                    >
+                      <Sparkles className="w-3 h-3 text-[#DFBD76]" />
+                      <span>Available</span>
+                    </button>
+                  ) : null}
                 </div>
 
                 {/* Photo Angle Counter & Description Badge */}
@@ -438,6 +528,75 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
               <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#1C1917] dark:text-[#FAF6EC] leading-tight">
                 {choli.name}
               </h1>
+
+              {/* Staff / Admin Live Garment Status Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38]">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-[#78716C] dark:text-[#9BB5AF]">Garment Status:</span>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                    choli.status === 'AT_DRY_CLEANER'
+                      ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
+                      : choli.status === 'IN_ALTERATION'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                      : choli.status === 'RENTED'
+                      ? 'bg-[#084C42]/10 text-[#084C42] dark:bg-[#DFBD76]/15 dark:text-[#DFBD76] border border-[#084C42]/30 dark:border-[#DFBD76]/40'
+                      : choli.status === 'RETIRED'
+                      ? 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 border border-stone-300 dark:border-stone-700'
+                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                  }`}>
+                    {choli.status === 'AT_DRY_CLEANER' ? (
+                      <>
+                        <Waves className="w-3.5 h-3.5 text-sky-600" />
+                        <span>In Dry Cleaning</span>
+                      </>
+                    ) : choli.status === 'IN_ALTERATION' ? (
+                      <>
+                        <Scissors className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Under Alteration</span>
+                      </>
+                    ) : choli.status === 'RENTED' ? (
+                      <>
+                        <ShoppingBag className="w-3.5 h-3.5 text-[#DFBD76]" />
+                        <span>Currently Rented</span>
+                      </>
+                    ) : choli.status === 'RETIRED' ? (
+                      <>
+                        <Archive className="w-3.5 h-3.5 text-stone-500" />
+                        <span>Archived</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Ready & Available</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                {isStaffOrAdmin && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsStatusModalOpen(true)}
+                      className="py-1 px-3 rounded-xl bg-gradient-to-r from-[#084C42] to-[#0D6357] hover:opacity-95 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                      title="Staff: Update choli status (Cleaning, Alteration, etc.)"
+                    >
+                      <Shirt className="w-3.5 h-3.5 text-[#DFBD76]" />
+                      <span>Update Status</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="py-1 px-3 rounded-xl border border-[#DFBD76]/50 bg-[#DFBD76]/10 hover:bg-[#DFBD76]/20 text-[#084C42] dark:text-[#DFBD76] font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                      title="Edit choli photos, specs, and details"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit Choli</span>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <p className="text-xs text-[#78716C] dark:text-[#9BB5AF] leading-relaxed">
                 {choli.description}
@@ -584,7 +743,22 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
 
                 {checkEventDate && (
                   <div>
-                    {!conflictingBooking ? (
+                    {choli.status === 'AT_DRY_CLEANER' ? (
+                      <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-300 dark:border-sky-800 text-sky-800 dark:text-sky-300 text-xs flex items-center gap-2 font-semibold">
+                        <Waves className="w-4 h-4 text-sky-600 flex-shrink-0" />
+                        <span>This choli is currently at the dry cleaner and cannot be booked.</span>
+                      </div>
+                    ) : choli.status === 'IN_ALTERATION' ? (
+                      <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2 font-semibold">
+                        <Scissors className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                        <span>This choli is under alteration with the master tailor and cannot be booked.</span>
+                      </div>
+                    ) : choli.status === 'RETIRED' ? (
+                      <div className="p-3 rounded-2xl bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 text-xs flex items-center gap-2 font-semibold">
+                        <Archive className="w-4 h-4 text-stone-500 flex-shrink-0" />
+                        <span>This choli is archived and unavailable for bookings.</span>
+                      </div>
+                    ) : !conflictingBooking ? (
                       <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2 font-semibold">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                         <span>100% Available on {new Date(checkEventDate).toDateString()}! Ready to reserve.</span>
@@ -601,23 +775,106 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
 
               {/* Action Buttons (Converted to MUI Buttons) */}
               <div className="space-y-2.5 pt-2">
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  onClick={handleBookOutfit}
-                  startIcon={<Sparkles style={{ width: 17, height: 17, color: '#DFBD76' }} />}
-                  sx={{
-                    borderRadius: '16px',
-                    py: 1.5,
-                    fontSize: '0.875rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.01em',
-                    boxShadow: '0 4px 16px rgba(8, 76, 66, 0.35)',
-                  }}
-                >
-                  Book / Reserve This Choli
-                </Button>
+                {choli.status === 'AT_DRY_CLEANER' ? (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
+                    sx={{
+                      borderRadius: '16px',
+                      py: 1.5,
+                      fontSize: '0.875rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.01em',
+                      backgroundColor: '#e0f2fe !important',
+                      color: '#0369a1 !important',
+                      border: '1px solid #7dd3fc',
+                      cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    🧺 At Dry Cleaner {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
+                  </Button>
+                ) : choli.status === 'IN_ALTERATION' ? (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
+                    sx={{
+                      borderRadius: '16px',
+                      py: 1.5,
+                      fontSize: '0.875rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.01em',
+                      backgroundColor: '#fef3c7 !important',
+                      color: '#92400e !important',
+                      border: '1px solid #fcd34d',
+                      cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    🪡 Under Alteration {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
+                  </Button>
+                ) : choli.status === 'RETIRED' ? (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
+                    sx={{
+                      borderRadius: '16px',
+                      py: 1.5,
+                      fontSize: '0.875rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.01em',
+                      backgroundColor: '#f5f5f4 !important',
+                      color: '#57534e !important',
+                      border: '1px solid #d6d3d1',
+                      cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    📦 Archived {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
+                  </Button>
+                ) : (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="primary"
+                    onClick={handleBookOutfit}
+                    startIcon={<Sparkles style={{ width: 17, height: 17, color: '#DFBD76' }} />}
+                    sx={{
+                      borderRadius: '16px',
+                      py: 1.5,
+                      fontSize: '0.875rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.01em',
+                      boxShadow: '0 4px 16px rgba(8, 76, 66, 0.35)',
+                    }}
+                  >
+                    Book / Reserve This Choli
+                  </Button>
+                )}
+
+                {/* Staff / Admin Fast Update Button */}
+                {isStaffOrAdmin && (
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => setIsStatusModalOpen(true)}
+                    startIcon={<Shirt style={{ width: 16, height: 16, color: '#DFBD76' }} />}
+                    sx={{
+                      borderRadius: '16px',
+                      py: 1.25,
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
+                      borderColor: '#DFBD76',
+                      color: isDark ? '#DFBD76' : '#084C42',
+                      '&:hover': {
+                        borderColor: '#C5A059',
+                        backgroundColor: isDark ? 'rgba(223, 189, 118, 0.1)' : 'rgba(8, 76, 66, 0.06)',
+                      },
+                    }}
+                  >
+                    Staff Action: Update Outfit Status
+                  </Button>
+                )}
 
                 <div className="grid grid-cols-2 gap-2">
                   <Button
@@ -803,10 +1060,20 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
         />
       )}
 
+      {/* Staff / Admin Update Status Modal */}
+      {choli && (
+        <UpdateStatusModal
+          choli={choli}
+          isOpen={isStatusModalOpen}
+          onClose={() => setIsStatusModalOpen(false)}
+          onStatusUpdated={(updated) => setRemoteCholi(updated)}
+        />
+      )}
+
       {/* Interactive Multi-Photo Fullscreen Lightbox */}
       {lightboxImageIdx !== null && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-6 select-none animate-in fade-in duration-200"
+          className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-6 select-none animate-in fade-in duration-200"
           onClick={() => setLightboxImageIdx(null)}
         >
           {/* Top Bar inside Lightbox */}
@@ -852,7 +1119,7 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
             <img
               src={safeImages[lightboxImageIdx]}
               alt={`${choli.name} Fullscreen Shot ${lightboxImageIdx + 1}`}
-              className="max-h-[75vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/10"
+              className="max-h-[75dvh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/10"
             />
 
             {/* Left & Right Lightbox Arrows */}
@@ -903,6 +1170,13 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
       {/* Floating Global Modals */}
       <BookingModal />
       <AuthModal />
+      {choli && (
+        <AddCholiModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          choliToEdit={choli}
+        />
+      )}
 
     </div>
   );

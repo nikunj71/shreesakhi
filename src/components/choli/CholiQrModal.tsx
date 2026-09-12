@@ -30,7 +30,7 @@ export function CholiQrModal({ choli, isOpen, onClose }: CholiQrModalProps) {
   useEffect(() => {
     if (!choli || !isOpen) return;
 
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
     const outfitUrl = `${origin}/choli/${choli._id}`;
 
     // Generate high-resolution luxury themed QR Code (Peacock Teal dark modules, Warm Champagne background)
@@ -49,7 +49,7 @@ export function CholiQrModal({ choli, isOpen, onClose }: CholiQrModalProps) {
 
   if (!isOpen || !choli) return null;
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
   const outfitUrl = `${origin}/choli/${choli._id}`;
 
   const handleCopyLink = () => {
@@ -75,14 +75,14 @@ export function CholiQrModal({ choli, isOpen, onClose }: CholiQrModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div 
-        className="relative w-full max-w-lg bg-white dark:bg-[#072622] rounded-3xl border border-[#DFBD76]/50 shadow-2xl overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-lg bg-white dark:bg-[#072622] rounded-3xl border border-[#DFBD76]/50 shadow-2xl overflow-hidden my-auto max-h-[calc(100dvh-1.5rem)] flex flex-col animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-5 sm:p-6 text-white flex items-center justify-between no-print">
+        <div className="bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-4 sm:p-6 text-white flex items-center justify-between no-print flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-[#DFBD76]/20 border border-[#DFBD76]/40 flex items-center justify-center text-[#DFBD76]">
               <QrCode className="w-5 h-5" />
@@ -105,7 +105,7 @@ export function CholiQrModal({ choli, isOpen, onClose }: CholiQrModalProps) {
         </div>
 
         {/* Modal Body: The Printable Boutique Hangtag */}
-        <div className="p-5 sm:p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
           
           {/* Printable Choli Tag Card */}
           <div 

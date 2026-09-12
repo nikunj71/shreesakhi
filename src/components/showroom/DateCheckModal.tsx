@@ -12,8 +12,10 @@ import {
   Sparkles, 
   Clock, 
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  AlertTriangle
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
 import Button from '@mui/material/Button';
@@ -52,6 +54,10 @@ export function DateCheckModal({ choli, isOpen, onClose }: DateCheckModalProps) 
     .sort((a, b) => a.pickupDate.localeCompare(b.pickupDate));
 
   const handleBookNow = () => {
+    if (choli.status === 'AT_DRY_CLEANER') {
+      toast.error(`"${choli.name}" (${choli.sku}) is currently at the dry cleaner and cannot be booked.`);
+      return;
+    }
     onClose();
     dispatch(openBookingModal(choli._id));
   };
@@ -64,11 +70,11 @@ export function DateCheckModal({ choli, isOpen, onClose }: DateCheckModalProps) 
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-6">
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-auto max-h-[calc(100dvh-1.5rem)] flex flex-col">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-5 sm:p-6 text-white flex items-center justify-between">
+        <div className="flex-shrink-0 bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-4 sm:p-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[#DFBD76]/20 border border-[#DFBD76]/40 flex items-center justify-center text-[#DFBD76]">
               <CalendarIcon className="w-5 h-5" />
@@ -91,7 +97,7 @@ export function DateCheckModal({ choli, isOpen, onClose }: DateCheckModalProps) 
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 text-xs sm:text-sm">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-xs sm:text-sm overflow-y-auto flex-1 custom-scrollbar">
           
           {/* Choli Quick Summary */}
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38]">
@@ -152,7 +158,19 @@ export function DateCheckModal({ choli, isOpen, onClose }: DateCheckModalProps) 
           </div>
 
           {/* Availability Result Banner */}
-          {isAvailable ? (
+          {choli.status === 'AT_DRY_CLEANER' ? (
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-500/40 text-amber-900 dark:text-amber-300 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <span className="font-bold text-sm sm:text-base">
+                  Currently at Dry Cleaner
+                </span>
+              </div>
+              <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
+                This outfit is currently out for professional dry cleaning and sanitization. It cannot be booked until it returns to available showroom inventory.
+              </p>
+            </div>
+          ) : isAvailable ? (
             <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-500/40 text-emerald-900 dark:text-emerald-300 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />

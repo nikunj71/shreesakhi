@@ -19,7 +19,7 @@ import { AddCholiModal } from '@/components/admin/AddCholiModal';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import { BoutiquePageLoader } from '@/components/common/BoutiqueLoader';
-import { Heart, Sun, Moon, PlusCircle, LogOut, User as UserIcon, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Heart, Sun, Moon, LogOut, User as UserIcon, ChevronDown, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -115,15 +115,6 @@ export default function Home() {
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
 
-              {/* Add Choli Button */}
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="py-1.5 px-3 rounded-full text-xs font-bold bg-[#084C42] hover:bg-[#0D6357] text-[#FAF6EC] border border-[#DFBD76]/50 flex items-center gap-1.5 shadow-sm transition-all"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-[#DFBD76]" />
-                <span>Add Choli</span>
-              </button>
-
               {/* Logged-In User Details Card with Dropdown & Logout */}
               <div className="relative pl-3 border-l border-[#EADFC9] dark:border-[#1A3E38]">
                 <button
@@ -215,6 +206,7 @@ export default function Home() {
               <ShowroomGallery 
                 onCheckCalendar={handleCheckCalendar}
                 onSwitchToTable={() => setActiveTab('inventory')}
+                onOpenAddModal={() => setIsAddModalOpen(true)}
               />
             )}
 
@@ -291,7 +283,10 @@ export default function Home() {
       {/* Main Content Viewport with mobile bottom bar padding */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 md:pb-8">
         {!currentUser || activeTab === 'showroom' ? (
-          <ShowroomGallery onCheckCalendar={handleCheckCalendar} />
+          <ShowroomGallery 
+            onCheckCalendar={handleCheckCalendar} 
+            onOpenAddModal={() => setIsAddModalOpen(true)} 
+          />
         ) : activeTab === 'calendar' ? (
           <BookingCalendar initialCholiFilter={calendarTargetCholi} />
         ) : activeTab === 'bookings' ? (
@@ -299,7 +294,10 @@ export default function Home() {
         ) : activeTab === 'analytics' ? (
           <AnalyticsDashboard />
         ) : (
-          <ShowroomGallery onCheckCalendar={handleCheckCalendar} />
+          <ShowroomGallery 
+            onCheckCalendar={handleCheckCalendar} 
+            onOpenAddModal={() => setIsAddModalOpen(true)} 
+          />
         )}
       </main>
 

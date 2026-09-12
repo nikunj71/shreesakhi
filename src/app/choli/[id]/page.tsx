@@ -137,6 +137,14 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [checkEventDate, setCheckEventDate] = useState<string>('');
+  
+  // Mobile Touch Swipe Handlers for Detail Page Featured Image
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+  // Fullscreen Lightbox Touch Handlers
+  const [lbTouchStartX, setLbTouchStartX] = useState<number | null>(null);
+  const [lbTouchStartY, setLbTouchStartY] = useState<number | null>(null);
 
   const isStaffOrAdmin = currentUser?.role === 'STAFF' || currentUser?.role === 'ADMIN';
 
@@ -233,10 +241,6 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
     setSelectedImageIdx((prev) => (prev === safeImages.length - 1 ? 0 : prev + 1));
   };
 
-  // Mobile Touch Swipe Handlers for Detail Page Featured Image
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-
   const handleTouchStart = (e: React.TouchEvent) => {
     if (safeImages.length <= 1) return;
     setTouchStartX(e.touches[0].clientX);
@@ -260,10 +264,6 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
     setTouchStartX(null);
     setTouchStartY(null);
   };
-
-  // Fullscreen Lightbox Touch Handlers
-  const [lbTouchStartX, setLbTouchStartX] = useState<number | null>(null);
-  const [lbTouchStartY, setLbTouchStartY] = useState<number | null>(null);
 
   const handleLbTouchStart = (e: React.TouchEvent) => {
     if (safeImages.length <= 1) return;

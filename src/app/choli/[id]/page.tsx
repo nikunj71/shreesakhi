@@ -773,179 +773,198 @@ export default function CholiDetailsPage({ params }: CholiPageProps) {
                 )}
               </div>
 
-              {/* Action Buttons (Converted to MUI Buttons) */}
-              <div className="space-y-2.5 pt-2">
-                {choli.status === 'AT_DRY_CLEANER' ? (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
-                    sx={{
-                      borderRadius: '16px',
-                      py: 1.5,
-                      fontSize: '0.875rem',
-                      fontWeight: 800,
-                      letterSpacing: '0.01em',
-                      backgroundColor: '#e0f2fe !important',
-                      color: '#0369a1 !important',
-                      border: '1px solid #7dd3fc',
-                      cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
-                    }}
-                  >
-                    🧺 At Dry Cleaner {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
-                  </Button>
-                ) : choli.status === 'IN_ALTERATION' ? (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
-                    sx={{
-                      borderRadius: '16px',
-                      py: 1.5,
-                      fontSize: '0.875rem',
-                      fontWeight: 800,
-                      letterSpacing: '0.01em',
-                      backgroundColor: '#fef3c7 !important',
-                      color: '#92400e !important',
-                      border: '1px solid #fcd34d',
-                      cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
-                    }}
-                  >
-                    🪡 Under Alteration {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
-                  </Button>
-                ) : choli.status === 'RETIRED' ? (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
-                    sx={{
-                      borderRadius: '16px',
-                      py: 1.5,
-                      fontSize: '0.875rem',
-                      fontWeight: 800,
-                      letterSpacing: '0.01em',
-                      backgroundColor: '#f5f5f4 !important',
-                      color: '#57534e !important',
-                      border: '1px solid #d6d3d1',
-                      cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
-                    }}
-                  >
-                    📦 Archived {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
-                  </Button>
-                ) : (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    color="primary"
-                    onClick={handleBookOutfit}
-                    startIcon={<Sparkles style={{ width: 17, height: 17, color: '#DFBD76' }} />}
-                    sx={{
-                      borderRadius: '16px',
-                      py: 1.5,
-                      fontSize: '0.875rem',
-                      fontWeight: 800,
-                      letterSpacing: '0.01em',
-                      boxShadow: '0 4px 16px rgba(8, 76, 66, 0.35)',
-                    }}
-                  >
-                    Book / Reserve This Choli
-                  </Button>
-                )}
-
-                {/* Staff / Admin Fast Update Button */}
-                {isStaffOrAdmin && (
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => setIsStatusModalOpen(true)}
-                    startIcon={<Shirt style={{ width: 16, height: 16, color: '#DFBD76' }} />}
-                    sx={{
-                      borderRadius: '16px',
-                      py: 1.25,
-                      fontSize: '0.8125rem',
-                      fontWeight: 700,
-                      borderColor: '#DFBD76',
-                      color: isDark ? '#DFBD76' : '#084C42',
-                      '&:hover': {
-                        borderColor: '#C5A059',
-                        backgroundColor: isDark ? 'rgba(223, 189, 118, 0.1)' : 'rgba(8, 76, 66, 0.06)',
-                      },
-                    }}
-                  >
-                    Staff Action: Update Outfit Status
-                  </Button>
-                )}
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outlined"
-                    onClick={handleWhatsAppInquiry}
-                    startIcon={<MessageCircle style={{ width: 15, height: 15, color: '#15803D' }} />}
-                    sx={{
-                      borderRadius: '14px',
-                      py: 1,
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      borderColor: isDark ? '#1A3E38' : '#EADFC9',
-                      color: isDark ? '#4ADE80' : '#15803D',
-                      bgcolor: isDark ? '#072622' : '#FAF8F5',
-                      '&:hover': {
-                        borderColor: '#15803D',
-                        bgcolor: isDark ? '#0A2E28' : 'rgba(21, 128, 61, 0.08)',
-                      },
-                    }}
-                  >
-                    WhatsApp
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    onClick={() => setIsQrModalOpen(true)}
-                    startIcon={<QrCode style={{ width: 15, height: 15, color: '#DFBD76' }} />}
-                    sx={{
-                      borderRadius: '14px',
-                      py: 1,
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      borderColor: isDark ? '#1A3E38' : '#EADFC9',
-                      color: isDark ? '#DFBD76' : '#084C42',
-                      bgcolor: isDark ? '#072622' : '#FAF8F5',
-                      '&:hover': {
-                        borderColor: '#DFBD76',
-                        bgcolor: isDark ? '#0A2E28' : 'rgba(223, 189, 118, 0.08)',
-                      },
-                    }}
-                  >
-                    Choli QR
-                  </Button>
+              {/* Action Buttons Section with Clear Hierarchy & Section Spacing */}
+              <div className="pt-3 border-t border-[#EADFC9]/70 dark:border-[#1A3E38] space-y-4">
+                {/* 1. Customer Primary Booking Action */}
+                <div>
+                  {choli.status === 'AT_DRY_CLEANER' ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
+                      sx={{
+                        borderRadius: '16px',
+                        py: 1.5,
+                        fontSize: '0.875rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.01em',
+                        backgroundColor: '#e0f2fe !important',
+                        color: '#0369a1 !important',
+                        border: '1px solid #7dd3fc',
+                        cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
+                      }}
+                    >
+                      🧺 At Dry Cleaner {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
+                    </Button>
+                  ) : choli.status === 'IN_ALTERATION' ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
+                      sx={{
+                        borderRadius: '16px',
+                        py: 1.5,
+                        fontSize: '0.875rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.01em',
+                        backgroundColor: '#fef3c7 !important',
+                        color: '#92400e !important',
+                        border: '1px solid #fcd34d',
+                        cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
+                      }}
+                    >
+                      🪡 Under Alteration {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
+                    </Button>
+                  ) : choli.status === 'RETIRED' ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={() => isStaffOrAdmin ? setIsStatusModalOpen(true) : undefined}
+                      sx={{
+                        borderRadius: '16px',
+                        py: 1.5,
+                        fontSize: '0.875rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.01em',
+                        backgroundColor: '#f5f5f4 !important',
+                        color: '#57534e !important',
+                        border: '1px solid #d6d3d1',
+                        cursor: isStaffOrAdmin ? 'pointer' : 'not-allowed',
+                      }}
+                    >
+                      📦 Archived {isStaffOrAdmin ? '— Click to Update' : '— Cannot Be Booked'}
+                    </Button>
+                  ) : (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      onClick={handleBookOutfit}
+                      startIcon={<Sparkles style={{ width: 17, height: 17, color: '#DFBD76' }} />}
+                      sx={{
+                        borderRadius: '16px',
+                        py: 1.5,
+                        fontSize: '0.875rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.01em',
+                        boxShadow: '0 4px 16px rgba(8, 76, 66, 0.35)',
+                      }}
+                    >
+                      Book / Reserve This Choli
+                    </Button>
+                  )}
                 </div>
 
-                {/* Dedicated Open in Instagram App Button */}
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  component="a"
-                  href={choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e: React.MouseEvent) => openInstagram(choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE, e)}
-                  startIcon={<InstagramIcon sx={{ fontSize: 18, color: '#E1306C' }} />}
-                  sx={{
-                    borderRadius: '14px',
-                    py: 1.1,
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    borderColor: 'rgba(225, 48, 108, 0.35)',
-                    color: isDark ? '#F472B6' : '#E1306C',
-                    bgcolor: isDark ? '#072622' : '#FAF8F5',
-                    '&:hover': {
-                      borderColor: '#E1306C',
-                      bgcolor: 'rgba(225, 48, 108, 0.08)',
-                    },
-                  }}
-                >
-                  Open in Instagram App
-                </Button>
+                {/* 2. Staff / Admin Action Section (With Dedicated Margin Above & Below) */}
+                {isStaffOrAdmin && (
+                  <div className="my-5 pt-3.5 pb-3 px-3.5 rounded-2xl bg-[#084C42]/5 dark:bg-[#DFBD76]/5 border border-dashed border-[#DFBD76]/40 dark:border-[#DFBD76]/30 space-y-2.5">
+                    <div className="flex items-center justify-between px-0.5">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-[#084C42] dark:text-[#DFBD76] flex items-center gap-1.5">
+                        <Shirt className="w-3.5 h-3.5 text-[#DFBD76]" />
+                        Staff Management Action
+                      </span>
+                      <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-[#DFBD76]/20 text-[#084C42] dark:text-[#DFBD76] border border-[#DFBD76]/30">
+                        Internal Only
+                      </span>
+                    </div>
+
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      onClick={() => setIsStatusModalOpen(true)}
+                      startIcon={<Shirt style={{ width: 16, height: 16, color: '#DFBD76' }} />}
+                      sx={{
+                        borderRadius: '14px',
+                        py: 1.25,
+                        fontSize: '0.8125rem',
+                        fontWeight: 700,
+                        borderColor: '#DFBD76',
+                        color: isDark ? '#DFBD76' : '#084C42',
+                        backgroundColor: isDark ? 'rgba(7, 38, 34, 0.6)' : '#ffffff',
+                        '&:hover': {
+                          borderColor: '#C5A059',
+                          backgroundColor: isDark ? 'rgba(223, 189, 118, 0.12)' : 'rgba(8, 76, 66, 0.05)',
+                        },
+                      }}
+                    >
+                      Staff Action: Update Outfit Status
+                    </Button>
+                  </div>
+                )}
+
+                {/* 3. Customer Direct Inquiries & Social Connections Section */}
+                <div className="space-y-3 pt-1">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outlined"
+                      onClick={handleWhatsAppInquiry}
+                      startIcon={<MessageCircle style={{ width: 15, height: 15, color: '#15803D' }} />}
+                      sx={{
+                        borderRadius: '14px',
+                        py: 1.1,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        borderColor: isDark ? '#1A3E38' : '#EADFC9',
+                        color: isDark ? '#4ADE80' : '#15803D',
+                        bgcolor: isDark ? '#072622' : '#FAF8F5',
+                        '&:hover': {
+                          borderColor: '#15803D',
+                          bgcolor: isDark ? '#0A2E28' : 'rgba(21, 128, 61, 0.08)',
+                        },
+                      }}
+                    >
+                      WhatsApp
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      onClick={() => setIsQrModalOpen(true)}
+                      startIcon={<QrCode style={{ width: 15, height: 15, color: '#DFBD76' }} />}
+                      sx={{
+                        borderRadius: '14px',
+                        py: 1.1,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        borderColor: isDark ? '#1A3E38' : '#EADFC9',
+                        color: isDark ? '#DFBD76' : '#084C42',
+                        bgcolor: isDark ? '#072622' : '#FAF8F5',
+                        '&:hover': {
+                          borderColor: '#DFBD76',
+                          bgcolor: isDark ? '#0A2E28' : 'rgba(223, 189, 118, 0.08)',
+                        },
+                      }}
+                    >
+                      Choli QR
+                    </Button>
+                  </div>
+
+                  {/* Dedicated Open in Instagram App Button */}
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    component="a"
+                    href={choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e: React.MouseEvent) => openInstagram(choli.instagramUrl || APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE, e)}
+                    startIcon={<InstagramIcon sx={{ fontSize: 18, color: '#E1306C' }} />}
+                    sx={{
+                      borderRadius: '14px',
+                      py: 1.1,
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      borderColor: 'rgba(225, 48, 108, 0.35)',
+                      color: isDark ? '#F472B6' : '#E1306C',
+                      bgcolor: isDark ? '#072622' : '#FAF8F5',
+                      '&:hover': {
+                        borderColor: '#E1306C',
+                        bgcolor: 'rgba(225, 48, 108, 0.08)',
+                      },
+                    }}
+                  >
+                    Open in Instagram App
+                  </Button>
+                </div>
               </div>
 
             </div>

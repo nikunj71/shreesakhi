@@ -221,36 +221,45 @@ export function AddCholiModal({ isOpen, onClose, choliToEdit }: AddCholiModalPro
 
     try {
       setIsUploadingPhoto(true);
+      let completedCount = 0;
       setUploadProgressText(
         filesToUpload.length > 1
-          ? `Uploading ${filesToUpload.length} photos to Cloudinary...`
-          : 'Uploading photo to Cloudinary...'
+          ? `Uploading 0 of ${filesToUpload.length} photos (separate /api/upload-file calls)...`
+          : 'Uploading photo to /api/upload-file...'
       );
 
-      const formData = new FormData();
-      filesToUpload.forEach((file) => {
-        formData.append('files', file);
+      // Perform a distinct /api/upload-file API call for EACH individual photo
+      const uploadPromises = filesToUpload.map(async (file, idx) => {
+        const singleFormData = new FormData();
+        singleFormData.append('file', file);
+
+        const res = await fetch('/api/upload-file', {
+          method: 'POST',
+          body: singleFormData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success || !data.url) {
+          throw new Error(data.error || `Failed to upload photo ${idx + 1} (${file.name})`);
+        }
+
+        completedCount++;
+        if (filesToUpload.length > 1) {
+          setUploadProgressText(`Uploaded ${completedCount} of ${filesToUpload.length} photos...`);
+        }
+        return data.url as string;
       });
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const newUrls = await Promise.all(uploadPromises);
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to upload photo(s)');
-      }
-
-      const newUrls: string[] = data.urls || (data.url ? [data.url] : []);
       if (newUrls.length > 0) {
         setPhotoInputs((prev) => [...prev, ...newUrls]);
         toast.success(
           newUrls.length > 1
-            ? `${newUrls.length} photos uploaded together successfully!`
-            : 'Photo uploaded to Cloudinary!',
+            ? `${newUrls.length} photos uploaded via separate API calls successfully!`
+            : 'Photo uploaded to Cloudinary successfully!',
           {
-            description: 'Images saved to Cloudinary CDN; URLs will be stored in database.'
+            description: 'Photo URLs ready for main Add Choli catalog submission.'
           }
         );
       }

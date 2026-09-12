@@ -167,6 +167,21 @@ export async function PATCH(request: Request) {
           await choli.save();
         }
       }
+    } else if (updates.status === 'CANCELLED' && existing.status !== 'CANCELLED' && previousRentEarned > 0) {
+      // Reverse rent earned when booking is cancelled
+      const choliIsObjectId = updatedBooking.choliId && updatedBooking.choliId.match(/^[0-9a-fA-F]{24}$/);
+      const choli = await Choli.findOne({
+        $or: [
+          ...(choliIsObjectId ? [{ _id: updatedBooking.choliId }] : []),
+          { sku: updatedBooking.choliSku },
+        ],
+      });
+
+      if (choli) {
+        choli.totalEarnedFromRent = Math.max(0, (choli.totalEarnedFromRent || 0) - previousRentEarned);
+        choli.isBreakEvenReached = (choli.totalEarnedFromRent || 0) >= (choli.totalCosting || 0);
+        await choli.save();
+      }
     }
 
     return NextResponse.json({ success: true, data: updatedBooking });
@@ -198,12 +213,15 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
       }
 
-      // Ensure the booking's rent amount is calculated into recovering the choli's total cost
+      // Reverse rent calculation when booking is deleted:
+      // If booking was already CANCELLED, rent was already reversed upon cancellation.
+      // If booking was active, reverse any credited rental income.
       const rentAmount = Number(booking.rentAmount || 0);
       const previouslyCredited = booking.paymentStatus === 'PARTIAL'
         ? Math.min(rentAmount, Number(booking.advanceAmount || 0))
         : (booking.paymentStatus === 'CLEARED' ? rentAmount : 0);
-      const remainingToCredit = Math.max(0, rentAmount - previouslyCredited);
+
+      const rentToReverse = booking.status === 'CANCELLED' ? 0 : previouslyCredited;
 
       const choliIsObjectId = booking.choliId && booking.choliId.match(/^[0-9a-fA-F]{24}$/);
       const choli = await Choli.findOne({
@@ -215,13 +233,14 @@ export async function DELETE(request: Request) {
 
       let updatedCholi = null;
       if (choli) {
-        if (remainingToCredit > 0) {
-          choli.totalEarnedFromRent = (choli.totalEarnedFromRent || 0) + remainingToCredit;
+        if (rentToReverse > 0) {
+          choli.totalEarnedFromRent = Math.max(0, (choli.totalEarnedFromRent || 0) - rentToReverse);
+          choli.isBreakEvenReached = (choli.totalEarnedFromRent || 0) >= (choli.totalCosting || 0);
+          await choli.save();
         }
-        choli.isBreakEvenReached = (choli.totalEarnedFromRent || 0) >= (choli.totalCosting || 0);
-        await choli.save();
         updatedCholi = {
           _id: choli._id.toString(),
+          sku: choli.sku,
           totalEarnedFromRent: choli.totalEarnedFromRent,
           isBreakEvenReached: choli.isBreakEvenReached,
         };
@@ -231,8 +250,9 @@ export async function DELETE(request: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `Booking ${booking.bookingNumber} deleted; ₹${rentAmount} calculated into choli recovery`,
+        message: `Booking ${booking.bookingNumber} deleted; ₹${rentToReverse} rent reversed from choli`,
         deletedId: booking._id.toString(),
+        reversedRent: rentToReverse,
         choli: updatedCholi,
       });
     }

@@ -11,7 +11,7 @@ import {
   updateDepositRefundApi,
   deleteBookingApi
 } from '@/store/bookingSlice';
-import { recordRentalEarnings, fetchCholis, updateCholiApi } from '@/store/choliSlice';
+import { recordRentalEarnings, reverseRentalEarnings, fetchCholis, updateCholiApi } from '@/store/choliSlice';
 import { BookingStatus, DepositRefundStatus, Choli } from '@/types';
 import { 
   ClipboardList, 
@@ -38,27 +38,30 @@ import { BoutiqueAutocomplete } from '@/components/common/BoutiqueAutocomplete';
 export function BookingsList() {
   const dispatch = useAppDispatch();
   const { items: bookings, loading: bookingsLoading } = useAppSelector((state) => state.bookings);
-  const cholis = useAppSelector((state) => state.cholis.items);
+  const { items: cholis } = useAppSelector((state) => state.cholis);
   const { currentUser } = useAppSelector((state) => state.auth);
 
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
-  const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<any | null>(null);
-  const [bookingToCancel, setBookingToCancel] = useState<{ bookingId: string; booking: any } | null>(null);
-  const [bookingToDelete, setBookingToDelete] = useState<any | null>(null);
+  const [filterPayment, setFilterPayment] = useState<string>('ALL');
+  const [selectedInvoiceBooking, setSelectedInvoiceBooking] = useState<any>(null);
   const [statusCholi, setStatusCholi] = useState<Choli | null>(null);
+  const [bookingToCancel, setBookingToCancel] = useState<{ bookingId: string; booking: any } | null>(null);
+  const [bookingToDelete, setBookingToDelete] = useState<any>(null);
 
+  // Filter bookings
   const filtered = bookings.filter((b) => {
-    const matchesSearch =
-      b.bookingNumber.toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch = 
       b.customer.name.toLowerCase().includes(search.toLowerCase()) ||
       b.customer.phone.includes(search) ||
+      b.bookingNumber.toLowerCase().includes(search.toLowerCase()) ||
       b.choliSku.toLowerCase().includes(search.toLowerCase()) ||
       b.choliName.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus = filterStatus === 'ALL' || b.status === filterStatus;
+    const matchesPayment = filterPayment === 'ALL' || b.paymentStatus === filterPayment;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesPayment;
   });
 
   const handleClearPayment = (b: any) => {
@@ -83,7 +86,7 @@ export function BookingsList() {
   };
 
   const handleStatusChange = (bookingId: string, status: BookingStatus) => {
-    const target = bookings.find((b) => b._id === bookingId);
+    const target = bookings.find((b) => b._id === bookingId || b.bookingNumber === bookingId);
     if (status === 'CANCELLED') {
       if (target) {
         setBookingToCancel({ bookingId, booking: target });
@@ -148,22 +151,22 @@ export function BookingsList() {
               placeholder="Search booking, phone, name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 rounded-2xl text-xs sm:text-sm bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] placeholder-[#78716C] dark:placeholder-[#9BB5AF] focus:outline-none focus:border-[#084C42] shadow-sm"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-xs text-[#1C1917] dark:text-[#FAF6EC] focus:border-[#084C42] dark:focus:border-[#DFBD76] outline-none"
             />
           </div>
 
           {/* Status Filter Autocomplete */}
-          <div className="w-full sm:w-52">
+          <div className="w-full sm:w-44">
             <BoutiqueAutocomplete
-              value={filterStatus}
-              onChange={(val) => setFilterStatus(val)}
               options={[
                 { value: 'ALL', label: 'All Statuses' },
-                { value: 'CONFIRMED', label: 'Confirmed (Scheduled)', badge: 'Confirmed' },
-                { value: 'PICKED_UP', label: 'Picked Up (With Customer)', badge: 'Active' },
-                { value: 'RETURNED', label: 'Returned (At Boutique)', badge: 'Returned' },
-                { value: 'CANCELLED', label: 'Cancelled', badge: 'Cancelled' },
+                { value: 'CONFIRMED', label: 'Confirmed', badge: 'Active' },
+                { value: 'PICKED_UP', label: 'Picked Up', badge: 'Out' },
+                { value: 'RETURNED', label: 'Returned', badge: 'Done' },
+                { value: 'CANCELLED', label: 'Cancelled', badge: 'Void' },
               ]}
+              value={filterStatus}
+              onChange={(val) => setFilterStatus(val)}
               placeholder="Filter Status..."
             />
           </div>
@@ -418,16 +421,25 @@ export function BookingsList() {
       <ConfirmationModal
         isOpen={Boolean(bookingToCancel)}
         onClose={() => setBookingToCancel(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (bookingToCancel) {
-            dispatch(updateBookingStatusApi({ id: bookingToCancel.bookingId, status: 'CANCELLED' }));
-            toast.success(`Booking ${bookingToCancel.booking.bookingNumber} marked as CANCELLED in MongoDB.`);
+            const rentAmount = Number(bookingToCancel.booking.rentAmount || 0);
+            const previouslyCredited = bookingToCancel.booking.paymentStatus === 'PARTIAL'
+              ? Math.min(rentAmount, Number(bookingToCancel.booking.advanceAmount || 0))
+              : (bookingToCancel.booking.paymentStatus === 'CLEARED' ? rentAmount : 0);
+
+            await dispatch(updateBookingStatusApi({ id: bookingToCancel.bookingId, status: 'CANCELLED' }));
+            if (previouslyCredited > 0) {
+              dispatch(reverseRentalEarnings({ choliId: bookingToCancel.booking.choliId, amount: previouslyCredited }));
+            }
+            dispatch(fetchCholis(currentUser?.role || 'ADMIN'));
+            toast.success(`Booking ${bookingToCancel.booking.bookingNumber} marked as CANCELLED; ₹${previouslyCredited.toLocaleString('en-IN')} rent calculation reversed.`);
             setBookingToCancel(null);
           }
         }}
-        title="Cancel Customer Booking?"
-        description={`Are you sure you want to cancel booking order ${bookingToCancel?.booking.bookingNumber} for ${bookingToCancel?.booking.customer.name}? The reserved dates for this choli will be freed up on the rental calendar.`}
-        confirmText="Yes, Cancel Booking"
+        title="Cancel Customer Booking & Reverse Rent?"
+        description={`Are you sure you want to cancel booking order ${bookingToCancel?.booking.bookingNumber} for ${bookingToCancel?.booking.customer.name}? Any rent calculation from this order will be reversed and the reserved dates will be freed on the calendar.`}
+        confirmText="Yes, Cancel Booking & Reverse Rent"
         cancelText="No, Keep Active"
         type="warning"
         itemPreview={bookingToCancel ? {
@@ -443,7 +455,7 @@ export function BookingsList() {
         } : undefined}
       />
 
-      {/* Custom Confirmation Popup for Deleting Booking & Calculating Recovery */}
+      {/* Custom Confirmation Popup for Deleting Booking & Reversing Rent */}
       <ConfirmationModal
         isOpen={Boolean(bookingToDelete)}
         onClose={() => setBookingToDelete(null)}
@@ -453,22 +465,23 @@ export function BookingsList() {
             const previouslyCredited = bookingToDelete.paymentStatus === 'PARTIAL'
               ? Math.min(rentAmount, Number(bookingToDelete.advanceAmount || 0))
               : (bookingToDelete.paymentStatus === 'CLEARED' ? rentAmount : 0);
-            const remainingToCredit = Math.max(0, rentAmount - previouslyCredited);
+
+            const rentToReverse = bookingToDelete.status === 'CANCELLED' ? 0 : previouslyCredited;
 
             await dispatch(deleteBookingApi(bookingToDelete._id));
-            if (remainingToCredit > 0) {
-              dispatch(recordRentalEarnings({ choliId: bookingToDelete.choliId, amount: remainingToCredit }));
+            if (rentToReverse > 0) {
+              dispatch(reverseRentalEarnings({ choliId: bookingToDelete.choliId, amount: rentToReverse }));
             }
             dispatch(fetchCholis(currentUser?.role || 'ADMIN'));
             toast.success(
-              `Booking ${bookingToDelete.bookingNumber} deleted! Rent of ₹${rentAmount.toLocaleString('en-IN')} calculated into ${bookingToDelete.choliSku} recovery.`
+              `Booking ${bookingToDelete.bookingNumber} deleted! Rent calculation of ₹${rentToReverse.toLocaleString('en-IN')} reversed from ${bookingToDelete.choliSku}.`
             );
             setBookingToDelete(null);
           }
         }}
-        title="Delete Booking Order?"
-        description={`Are you sure you want to delete booking ${bookingToDelete?.bookingNumber} for ${bookingToDelete?.customer?.name}? The booking rent of ₹${Number(bookingToDelete?.rentAmount || 0).toLocaleString('en-IN')} will be calculated into the recovery of ${bookingToDelete?.choliSku} total cost.`}
-        confirmText="Yes, Delete & Calculate Recovery"
+        title="Delete Booking & Reverse Rent?"
+        description={`Are you sure you want to delete booking ${bookingToDelete?.bookingNumber} for ${bookingToDelete?.customer?.name}? All rent calculation (₹${Number(bookingToDelete?.rentAmount || 0).toLocaleString('en-IN')}) will be reversed and deducted from the choli's total earned revenue.`}
+        confirmText="Yes, Delete & Reverse Rent"
         cancelText="No, Keep Booking"
         type="danger"
         itemPreview={bookingToDelete ? {
@@ -479,7 +492,7 @@ export function BookingsList() {
           details: [
             { label: 'Choli SKU', value: bookingToDelete.choliSku },
             { label: 'Event Date', value: bookingToDelete.eventDate },
-            { label: 'Rent (Calculated in Recovery)', value: `₹${Number(bookingToDelete.rentAmount || 0).toLocaleString('en-IN')}` },
+            { label: 'Rent to Reverse', value: `₹${Number(bookingToDelete.rentAmount || 0).toLocaleString('en-IN')}` },
             { label: 'Payment Status', value: bookingToDelete.paymentStatus },
           ]
         } : undefined}

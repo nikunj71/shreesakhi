@@ -8,7 +8,7 @@ export const APP_CONFIG = {
   LOCATION: 'Bandra West, Mumbai & Satellite, Ahmedabad',
   PHONE: '+91 98200 11223',
   EMAIL: 'contact@shreesakhi.com',
-  DEFAULT_INSTAGRAM_PROFILE: 'https://www.instagram.com/shreesakhi_couture',
+  DEFAULT_INSTAGRAM_PROFILE: 'https://www.instagram.com/shree.sakhi_boutique',
   DEFAULT_PLACEHOLDER_IMAGE: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=1200&auto=format&fit=crop',
 };
 

@@ -140,6 +140,14 @@ export const choliSlice = createSlice({
         saveStoredCholis(state.items);
       }
     },
+    reverseRentalEarnings: (state, action: PayloadAction<{ choliId: string; amount: number }>) => {
+      const choli = state.items.find(c => c._id === action.payload.choliId || c.sku === action.payload.choliId);
+      if (choli) {
+        choli.totalEarnedFromRent = Math.max(0, (choli.totalEarnedFromRent || 0) - action.payload.amount);
+        choli.isBreakEvenReached = choli.totalEarnedFromRent >= (choli.totalCosting || 0);
+        saveStoredCholis(state.items);
+      }
+    },
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
     },
@@ -209,6 +217,7 @@ export const {
   updateCholi,
   deleteCholi,
   recordRentalEarnings,
+  reverseRentalEarnings,
   setSearchQuery,
   setSelectedCategory,
   setSelectedColor,

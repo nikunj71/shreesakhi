@@ -7,7 +7,7 @@ import { APP_CONFIG } from '@/constants';
 export function getInstagramUrl(rawUrl?: string): string {
   const url = rawUrl?.trim();
   if (!url) {
-    return APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE || 'https://www.instagram.com/shreesakhi_couture';
+    return APP_CONFIG.DEFAULT_INSTAGRAM_PROFILE || 'https://www.instagram.com/shree.sakhi_boutique';
   }
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
@@ -42,14 +42,14 @@ export function openInstagram(rawUrl?: string, e?: React.MouseEvent): void {
     // Strip protocol for Android Intent syntax
     const urlWithoutProtocol = cleanUrl.replace(/^https?:\/\//i, '');
     const intentUrl = `intent://${urlWithoutProtocol}#Intent;package=com.instagram.android;scheme=https;end`;
-    
+
     // Trigger intent directly to launch native Instagram app
     window.location.href = intentUrl;
     return;
   }
 
   if (isIOS) {
-    // Check if it's a profile URL (e.g. instagram.com/shreesakhi_couture)
+    // Check if it's a profile URL (e.g. instagram.com/shree.sakhi_boutique)
     const profileMatch = cleanUrl.match(/(?:https?:\/\/)?(?:www\.)?instagram\.com\/([a-zA-Z0-9_.]+)\/?$/);
     const isProfile = profileMatch && !['p', 'reel', 'stories', 'explore', 'direct'].includes(profileMatch[1].toLowerCase());
 

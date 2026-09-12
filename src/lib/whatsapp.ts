@@ -71,7 +71,9 @@ export function generateBookingInvoiceWhatsAppMessage(
         ? `ADVANCE RECEIVED 🟡 (Balance Due on Pickup: ₹${balanceDue.toLocaleString('en-IN')})`
         : 'PAYMENT PENDING ⏳ (Due on Pickup)';
 
-  const siteOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '');
+  const windowOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const siteOrigin = envUrl || windowOrigin;
   const shortBookingId = booking.bookingNumber.replace(/^BK-/i, '');
   const directDownloadUrl = siteOrigin ? `${siteOrigin}/d/${shortBookingId}` : '';
 

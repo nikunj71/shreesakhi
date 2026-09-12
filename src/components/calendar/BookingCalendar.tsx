@@ -352,10 +352,16 @@ export function BookingCalendar({ initialCholiFilter = null }: BookingCalendarPr
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             b.paymentStatus === 'CLEARED'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                              : b.paymentStatus === 'PARTIAL'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                              : 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
                           }`}
                         >
-                          Payment {b.paymentStatus}
+                          {b.paymentStatus === 'CLEARED'
+                            ? 'Cleared'
+                            : b.paymentStatus === 'PARTIAL'
+                            ? `Adv: ₹${(b.advanceAmount || 0).toLocaleString('en-IN')}`
+                            : 'Pending'}
                         </span>
                       </div>
                     </div>

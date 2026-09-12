@@ -55,8 +55,12 @@ export async function POST(request: Request) {
     const { _id, ...bookingData } = body;
     const newBooking = await Booking.create(bookingData);
 
-    // If payment is cleared upon booking, update Choli totalEarnedFromRent
-    if (body.paymentStatus === 'CLEARED' && body.rentAmount > 0) {
+    // If payment is cleared or advance paid upon booking, update Choli totalEarnedFromRent
+    const rentEarnedNow = body.paymentStatus === 'CLEARED'
+      ? Number(body.rentAmount || 0)
+      : Math.min(Number(body.rentAmount || 0), Number(body.advanceAmount || 0));
+
+    if (rentEarnedNow > 0) {
       const isObjectId = body.choliId && body.choliId.match(/^[0-9a-fA-F]{24}$/);
       const choli = await Choli.findOne({
         $or: [
@@ -66,7 +70,7 @@ export async function POST(request: Request) {
       });
 
       if (choli) {
-        choli.totalEarnedFromRent = (choli.totalEarnedFromRent || 0) + Number(body.rentAmount);
+        choli.totalEarnedFromRent = (choli.totalEarnedFromRent || 0) + rentEarnedNow;
         choli.isBreakEvenReached = choli.totalEarnedFromRent >= (choli.totalCosting || 0);
         await choli.save();
       }
@@ -104,26 +108,32 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     }
 
-    // Check if payment changed from PENDING to CLEARED
+    // Check if payment changed from PENDING/PARTIAL to CLEARED
     const wasCleared = existing.paymentStatus === 'CLEARED';
+    const previousRentEarned = existing.paymentStatus === 'PARTIAL' 
+      ? Math.min(existing.rentAmount, existing.advanceAmount || 0) 
+      : (existing.paymentStatus === 'CLEARED' ? existing.rentAmount : 0);
     const isNowCleared = updates.paymentStatus === 'CLEARED';
 
     Object.assign(existing, updates);
     const updatedBooking = await existing.save();
 
     if (!wasCleared && isNowCleared && updatedBooking.rentAmount > 0) {
-      const choliIsObjectId = updatedBooking.choliId && updatedBooking.choliId.match(/^[0-9a-fA-F]{24}$/);
-      const choli = await Choli.findOne({
-        $or: [
-          ...(choliIsObjectId ? [{ _id: updatedBooking.choliId }] : []),
-          { sku: updatedBooking.choliSku },
-        ],
-      });
+      const remainingRentToAdd = Math.max(0, updatedBooking.rentAmount - previousRentEarned);
+      if (remainingRentToAdd > 0) {
+        const choliIsObjectId = updatedBooking.choliId && updatedBooking.choliId.match(/^[0-9a-fA-F]{24}$/);
+        const choli = await Choli.findOne({
+          $or: [
+            ...(choliIsObjectId ? [{ _id: updatedBooking.choliId }] : []),
+            { sku: updatedBooking.choliSku },
+          ],
+        });
 
-      if (choli) {
-        choli.totalEarnedFromRent = (choli.totalEarnedFromRent || 0) + Number(updatedBooking.rentAmount);
-        choli.isBreakEvenReached = choli.totalEarnedFromRent >= (choli.totalCosting || 0);
-        await choli.save();
+        if (choli) {
+          choli.totalEarnedFromRent = (choli.totalEarnedFromRent || 0) + remainingRentToAdd;
+          choli.isBreakEvenReached = choli.totalEarnedFromRent >= (choli.totalCosting || 0);
+          await choli.save();
+        }
       }
     }
 

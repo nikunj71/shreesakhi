@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { deleteCholi, deleteCholiApi } from '@/store/choliSlice';
 import { openBookingModal } from '@/store/bookingSlice';
@@ -15,6 +15,9 @@ import {
   Calendar as CalendarIcon, 
   Trash2, 
   ChevronRight, 
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   CheckCircle2, 
   Clock, 
   RotateCcw,
@@ -58,6 +61,158 @@ const CATEGORIES: (CholiCategory | 'All')[] = [
   'Reception',
   'Partywear',
 ];
+
+interface PaginationBarProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  pageSizeOptions: number[];
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}
+
+function PaginationBar({
+  currentPage,
+  totalPages,
+  totalItems,
+  pageSize,
+  pageSizeOptions,
+  onPageChange,
+  onPageSizeChange,
+}: PaginationBarProps) {
+  if (totalItems === 0) return null;
+
+  const startItem = (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
+
+  // Generate page numbers with ellipsis
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  };
+
+  const pages = getPageNumbers();
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs select-none">
+      {/* Left: Info & Per Page selector */}
+      <div className="flex flex-wrap items-center justify-between sm:justify-start w-full sm:w-auto gap-3 text-[#78716C] dark:text-[#9CA3AF]">
+        <span>
+          Showing <strong className="text-[#084C42] dark:text-[#DFBD76]">{startItem}</strong>–<strong className="text-[#084C42] dark:text-[#DFBD76]">{endItem}</strong> of <strong className="text-[#1C1917] dark:text-[#FAF6EC]">{totalItems}</strong> items
+        </span>
+
+        <div className="flex items-center gap-1.5 pl-2 border-l border-[#EADFC9] dark:border-[#1A3E38]">
+          <span className="text-[11px]">Per page:</span>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              onPageSizeChange(Number(e.target.value));
+              onPageChange(1);
+            }}
+            className="py-1 px-2 rounded-lg bg-[#FAF8F5] dark:bg-[#041A17] border border-[#EADFC9] dark:border-[#1A3E38] text-[#1C1917] dark:text-[#FAF6EC] font-semibold text-xs focus:outline-none focus:border-[#084C42] dark:focus:border-[#DFBD76]"
+          >
+            {pageSizeOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Right: Page Buttons */}
+      <div className="flex items-center justify-center flex-wrap gap-1 w-full sm:w-auto">
+        {/* First Page */}
+        <button
+          type="button"
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          className="p-1.5 rounded-lg border border-[#EADFC9] dark:border-[#1A3E38] text-stone-600 dark:text-stone-300 hover:bg-[#FAF8F5] dark:hover:bg-[#041A17] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          title="First Page"
+          aria-label="First Page"
+        >
+          <ChevronsLeft className="w-4 h-4" />
+        </button>
+
+        {/* Prev Page */}
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="p-1.5 rounded-lg border border-[#EADFC9] dark:border-[#1A3E38] text-stone-600 dark:text-stone-300 hover:bg-[#FAF8F5] dark:hover:bg-[#041A17] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          title="Previous Page"
+          aria-label="Previous Page"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {/* Number Buttons */}
+        <div className="flex items-center gap-1 mx-0.5">
+          {pages.map((p, idx) => {
+            if (p === '...') {
+              return (
+                <span key={`ellipsis-${idx}`} className="px-1 text-stone-400">
+                  ...
+                </span>
+              );
+            }
+            const isCurrent = p === currentPage;
+            return (
+              <button
+                key={`page-${p}`}
+                type="button"
+                onClick={() => onPageChange(p as number)}
+                className={`min-w-[28px] sm:min-w-[32px] h-7 sm:h-8 px-2 rounded-lg font-bold text-xs transition-all flex items-center justify-center ${
+                  isCurrent
+                    ? 'bg-gradient-to-r from-[#084C42] to-[#0D6357] text-[#FAF6EC] shadow-sm shadow-[#084C42]/20 border border-[#DFBD76]/50'
+                    : 'border border-[#EADFC9] dark:border-[#1A3E38] text-stone-700 dark:text-stone-300 hover:bg-[#FAF8F5] dark:hover:bg-[#041A17]'
+                }`}
+              >
+                {p}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Next Page */}
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="p-1.5 rounded-lg border border-[#EADFC9] dark:border-[#1A3E38] text-stone-600 dark:text-stone-300 hover:bg-[#FAF8F5] dark:hover:bg-[#041A17] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          title="Next Page"
+          aria-label="Next Page"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+
+        {/* Last Page */}
+        <button
+          type="button"
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          className="p-1.5 rounded-lg border border-[#EADFC9] dark:border-[#1A3E38] text-stone-600 dark:text-stone-300 hover:bg-[#FAF8F5] dark:hover:bg-[#041A17] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          title="Last Page"
+          aria-label="Last Page"
+        >
+          <ChevronsRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToShowroom, onEditCholi }: AdminCholiTableProps) {
   const dispatch = useAppDispatch();
@@ -167,6 +322,30 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
 
     return matchesSearch && matchesCategory && matchesStatus && matchesDate;
   });
+
+  // Pagination State for Table & Card views
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(10);
+  const [cardPage, setCardPage] = useState(1);
+  const [cardPageSize, setCardPageSize] = useState(12);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setTablePage(1);
+    setCardPage(1);
+  }, [searchQuery, selectedCategory, statusFilter, filterEventDate, onlyAvailableOnDate]);
+
+  // Table pagination calculations
+  const totalTablePages = Math.max(1, Math.ceil(filteredCholis.length / tablePageSize));
+  const safeTablePage = Math.min(tablePage, totalTablePages);
+  const tableStartIndex = (safeTablePage - 1) * tablePageSize;
+  const paginatedTableCholis = filteredCholis.slice(tableStartIndex, tableStartIndex + tablePageSize);
+
+  // Card pagination calculations
+  const totalCardPages = Math.max(1, Math.ceil(filteredCholis.length / cardPageSize));
+  const safeCardPage = Math.min(cardPage, totalCardPages);
+  const cardStartIndex = (safeCardPage - 1) * cardPageSize;
+  const paginatedCardCholis = filteredCholis.slice(cardStartIndex, cardStartIndex + cardPageSize);
 
   const handleEdit = (choli: Choli) => {
     if (currentUser?.role !== 'ADMIN') {
@@ -409,7 +588,17 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-[#78716C] dark:text-[#9CA3AF] px-1 pb-1">
         <div className="flex items-center gap-2">
           <span suppressHydrationWarning>
-            Showing <strong className="text-[#084C42] dark:text-[#DFBD76]">{filteredCholis.length}</strong> of <strong className="text-[#1C1917] dark:text-[#FAF6EC]">{cholis.length}</strong> total cholis in vault
+            {filteredCholis.length === 0 ? (
+              <>Showing <strong className="text-[#084C42] dark:text-[#DFBD76]">0</strong> of <strong className="text-[#1C1917] dark:text-[#FAF6EC]">{cholis.length}</strong> total cholis in vault</>
+            ) : viewMode === 'table' ? (
+              <>
+                Showing <strong className="text-[#084C42] dark:text-[#DFBD76]">{tableStartIndex + 1}–{Math.min(tableStartIndex + tablePageSize, filteredCholis.length)}</strong> of <strong className="text-[#1C1917] dark:text-[#FAF6EC]">{filteredCholis.length}</strong> matching cholis (Page {safeTablePage} of {totalTablePages})
+              </>
+            ) : (
+              <>
+                Showing <strong className="text-[#084C42] dark:text-[#DFBD76]">{cardStartIndex + 1}–{Math.min(cardStartIndex + cardPageSize, filteredCholis.length)}</strong> of <strong className="text-[#1C1917] dark:text-[#FAF6EC]">{filteredCholis.length}</strong> matching cholis (Page {safeCardPage} of {totalCardPages})
+              </>
+            )}
           </span>
           {filterEventDate && (
             <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#084C42]/10 dark:bg-[#DFBD76]/15 text-[#084C42] dark:text-[#DFBD76]">
@@ -485,7 +674,7 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                     </td>
                   </tr>
                 ) : (
-                  filteredCholis.map((c) => {
+                  paginatedTableCholis.map((c) => {
                     const totalCost = c.totalCosting ?? 0;
                     const rentEarned = c.totalEarnedFromRent ?? 0;
                     const breakEvenPct = totalCost > 0
@@ -738,6 +927,22 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
               </tbody>
             </table>
           </div>
+
+          {/* Table Pagination Bar */}
+          <div className="px-4 py-3 border-t border-[#EADFC9] dark:border-[#1A3E38] bg-[#FAF8F5]/60 dark:bg-[#041A17]/60">
+            <PaginationBar
+              currentPage={safeTablePage}
+              totalPages={totalTablePages}
+              totalItems={filteredCholis.length}
+              pageSize={tablePageSize}
+              pageSizeOptions={[10, 25, 50, 100]}
+              onPageChange={(p) => setTablePage(p)}
+              onPageSizeChange={(sz) => {
+                setTablePageSize(sz);
+                setTablePage(1);
+              }}
+            />
+          </div>
         </div>
       ) : (
         /* Mode 2: Dedicated Admin Card Grid (Shows All Confidential Details) */
@@ -766,8 +971,9 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
-              {filteredCholis.map((c) => {
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
+                {paginatedCardCholis.map((c) => {
                 const totalCost = c.totalCosting ?? 0;
                 const rentEarned = c.totalEarnedFromRent ?? 0;
                 const breakEvenPct = totalCost > 0
@@ -1028,7 +1234,24 @@ export function AdminCholiTable({ onCheckCalendar, onOpenAddModal, onSwitchToSho
                 );
               })}
             </div>
-          )}
+
+            {/* Card View Pagination Bar */}
+            <div className="bg-white dark:bg-[#072622] rounded-2xl border border-[#EADFC9] dark:border-[#1A3E38] p-3 sm:p-4 shadow-sm">
+              <PaginationBar
+                currentPage={safeCardPage}
+                totalPages={totalCardPages}
+                totalItems={filteredCholis.length}
+                pageSize={cardPageSize}
+                pageSizeOptions={[8, 12, 24, 48]}
+                onPageChange={(p) => setCardPage(p)}
+                onPageSizeChange={(sz) => {
+                  setCardPageSize(sz);
+                  setCardPage(1);
+                }}
+              />
+            </div>
+          </>
+        )}
         </div>
       )}
 

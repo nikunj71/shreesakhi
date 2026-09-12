@@ -20,6 +20,7 @@ export interface IBookingDocument extends Document {
   rentAmount: number;
   securityDeposit: number;
   discount: number;
+  advanceAmount?: number;
   finalTotal: number;
   paymentStatus: string;
   paymentMode: string;
@@ -52,10 +53,11 @@ const BookingSchema: Schema = new Schema({
   rentAmount: { type: Number, required: true },
   securityDeposit: { type: Number, required: true },
   discount: { type: Number, default: 0 },
+  advanceAmount: { type: Number, default: 0 },
   finalTotal: { type: Number, required: true },
   paymentStatus: { 
     type: String, 
-    enum: ['PENDING', 'CLEARED'], 
+    enum: ['PENDING', 'CLEARED', 'PARTIAL'], 
     default: 'PENDING' 
   },
   paymentMode: { 

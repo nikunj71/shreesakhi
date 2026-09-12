@@ -90,7 +90,7 @@ export const updateBookingStatusApi = createAsyncThunk(
 export const updateBookingPaymentApi = createAsyncThunk(
   'bookings/updateBookingPaymentApi',
   async (
-    payload: { id: string; paymentStatus: PaymentStatus },
+    payload: { id: string; paymentStatus: PaymentStatus; advanceAmount?: number },
     { rejectWithValue }
   ) => {
     try {
@@ -100,6 +100,7 @@ export const updateBookingPaymentApi = createAsyncThunk(
         body: JSON.stringify({
           id: payload.id,
           paymentStatus: payload.paymentStatus,
+          advanceAmount: payload.advanceAmount,
         }),
       });
       const data = await res.json();
@@ -157,11 +158,14 @@ export const bookingSlice = createSlice({
     },
     updateBookingPayment: (
       state,
-      action: PayloadAction<{ id: string; paymentStatus: PaymentStatus }>
+      action: PayloadAction<{ id: string; paymentStatus: PaymentStatus; advanceAmount?: number }>
     ) => {
       const booking = state.items.find((b) => b._id === action.payload.id || b.bookingNumber === action.payload.id);
       if (booking) {
         booking.paymentStatus = action.payload.paymentStatus;
+        if (action.payload.advanceAmount !== undefined) {
+          booking.advanceAmount = action.payload.advanceAmount;
+        }
         saveStoredBookings(state.items);
       }
     },

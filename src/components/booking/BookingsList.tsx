@@ -50,11 +50,24 @@ export function BookingsList() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleClearPayment = (bookingId: string, choliId: string, rentAmount: number) => {
-    dispatch(updateBookingPaymentApi({ id: bookingId, paymentStatus: 'CLEARED' }));
-    dispatch(recordRentalEarnings({ choliId, amount: rentAmount }));
+  const handleClearPayment = (b: any) => {
+    const previousRentEarned = b.paymentStatus === 'PARTIAL'
+      ? Math.min(b.rentAmount, b.advanceAmount || 0)
+      : (b.paymentStatus === 'CLEARED' ? b.rentAmount : 0);
+    const remainingRentToAdd = Math.max(0, b.rentAmount - previousRentEarned);
+
+    dispatch(updateBookingPaymentApi({ 
+      id: b._id, 
+      paymentStatus: 'CLEARED',
+      advanceAmount: b.finalTotal
+    }));
+    if (remainingRentToAdd > 0) {
+      dispatch(recordRentalEarnings({ choliId: b.choliId, amount: remainingRentToAdd }));
+    }
     toast.success('Payment marked as CLEARED in MongoDB!', {
-      description: `₹${(rentAmount ?? 0).toLocaleString('en-IN')} rental fee was deducted from the outfit's capital costing.`
+      description: remainingRentToAdd > 0 
+        ? `₹${remainingRentToAdd.toLocaleString('en-IN')} remaining rental fee was deducted from the outfit's capital costing.`
+        : 'Order marked as fully paid and cleared.'
     });
   };
 
@@ -192,7 +205,7 @@ export function BookingsList() {
                 
                 {/* Rent & Deposit Figures (ADMIN ONLY: Financial Privacy) */}
                 {currentUser?.role === 'ADMIN' ? (
-                  <div className="text-right">
+                  <div className="text-right space-y-0.5">
                     <div className="font-serif text-lg font-bold text-[#084C42] dark:text-[#DFBD76]">
                       ₹{(b.rentAmount ?? 0).toLocaleString('en-IN')}
                       <span className="text-[10px] text-[#78716C] dark:text-[#9CA3AF] font-normal ml-1">(Rent)</span>
@@ -200,36 +213,78 @@ export function BookingsList() {
                     <div className="text-xs text-[#78716C] dark:text-[#9CA3AF]">
                       Deposit: ₹{(b.securityDeposit ?? 0).toLocaleString('en-IN')} ({b.depositRefundStatus})
                     </div>
+                    {b.paymentStatus === 'PARTIAL' && (
+                      <div className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                        Adv: ₹{(b.advanceAmount ?? 0).toLocaleString('en-IN')} • Due: ₹{Math.max(0, b.finalTotal - (b.advanceAmount ?? 0)).toLocaleString('en-IN')}
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="text-right">
+                  <div className="text-right space-y-0.5">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#78716C] dark:text-[#9CA3AF] block">
                       Refundable Deposit
                     </span>
-                    <span className="text-xs font-semibold text-[#1C1917] dark:text-[#FAF6EC]">
+                    <span className="text-xs font-semibold text-[#1C1917] dark:text-[#FAF6EC] block">
                       Status: {b.depositRefundStatus}
                     </span>
+                    {b.paymentStatus === 'PARTIAL' && (
+                      <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block">
+                        Due: ₹{Math.max(0, b.finalTotal - (b.advanceAmount ?? 0)).toLocaleString('en-IN')}
+                      </span>
+                    )}
                   </div>
                 )}
 
-                {/* Payment Status Pill / Action (Admin Only can Clear Payments) */}
-                {currentUser?.role === 'ADMIN' && (
+                {/* Payment Status Pill / Action */}
+                {currentUser?.role === 'ADMIN' ? (
                   <div>
                     {b.paymentStatus === 'CLEARED' ? (
                       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Cleared
                       </span>
+                    ) : b.paymentStatus === 'PARTIAL' ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                          Adv Paid: ₹{(b.advanceAmount || 0).toLocaleString('en-IN')}
+                        </span>
+                        <button
+                          onClick={() => handleClearPayment(b)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-all active:scale-95"
+                          title="Click to clear remaining balance and credit remaining rent"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Clear Due (₹{Math.max(0, b.finalTotal - (b.advanceAmount || 0)).toLocaleString('en-IN')})</span>
+                        </button>
+                      </div>
                     ) : (
                       <button
-                        onClick={() => handleClearPayment(b._id, b.choliId, b.rentAmount)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-all"
+                        onClick={() => handleClearPayment(b)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-all active:scale-95"
                         title="Click to mark payment cleared and deduct from choli costing"
                       >
                         <CreditCard className="w-3.5 h-3.5" />
-                        <span>Clear (₹{b.rentAmount})</span>
+                        <span>Clear (₹{b.finalTotal.toLocaleString('en-IN')})</span>
                       </button>
                     )}
+                  </div>
+                ) : (
+                  <div>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        b.paymentStatus === 'CLEARED'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                          : b.paymentStatus === 'PARTIAL'
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                          : 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
+                      }`}
+                    >
+                      {b.paymentStatus === 'CLEARED'
+                        ? 'Cleared'
+                        : b.paymentStatus === 'PARTIAL'
+                        ? `Adv ₹${(b.advanceAmount || 0).toLocaleString('en-IN')}`
+                        : 'Payment Due'}
+                    </span>
                   </div>
                 )}
 
@@ -320,6 +375,7 @@ export function BookingsList() {
           details: [
             { label: 'Event Date', value: bookingToCancel.booking.eventDate },
             { label: 'Total Payable', value: `₹${(bookingToCancel.booking.finalTotal ?? 0).toLocaleString('en-IN')}` },
+            ...(bookingToCancel.booking.advanceAmount ? [{ label: 'Advance Paid', value: `₹${Number(bookingToCancel.booking.advanceAmount).toLocaleString('en-IN')}` }] : []),
           ]
         } : undefined}
       />

@@ -52,6 +52,19 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
 
   const handleWhatsAppShare = () => {
     const cleanPhone = booking.customer.phone.replace(/[^0-9]/g, '');
+    const advanceInfo = booking.advanceAmount && booking.advanceAmount > 0
+      ? `*Advance Paid:* ₹${Number(booking.advanceAmount).toLocaleString('en-IN')}\n` +
+        (booking.advanceAmount < booking.finalTotal
+          ? `*Balance Due on Pickup:* ₹${Math.max(0, booking.finalTotal - Number(booking.advanceAmount)).toLocaleString('en-IN')}\n`
+          : '')
+      : '';
+
+    const statusDisplay = booking.paymentStatus === 'CLEARED'
+      ? 'PAID IN FULL'
+      : booking.paymentStatus === 'PARTIAL'
+      ? 'ADVANCE RECEIVED (Balance due on pickup)'
+      : 'PAYMENT PENDING (Due on pickup)';
+
     const message = encodeURIComponent(
       `*ShreeSakhi Luxury Boutique - Rental Invoice & Booking Confirmation*\n\n` +
       `*Invoice No:* ${invoiceNumber}\n` +
@@ -60,8 +73,10 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
       `*Rental Dates:* ${booking.pickupDate} to ${booking.returnExpectedDate}\n` +
       `*Rental Fee:* ₹${booking.rentAmount.toLocaleString('en-IN')}\n` +
       `*Security Deposit:* ₹${booking.securityDeposit.toLocaleString('en-IN')} (Refundable on Return)\n` +
-      `*Total Paid/Payable:* ₹${booking.finalTotal.toLocaleString('en-IN')}\n` +
-      `*Payment Status:* ${booking.paymentStatus}\n\n` +
+      (booking.discount > 0 ? `*Discount:* -₹${booking.discount.toLocaleString('en-IN')}\n` : '') +
+      `*Total Order:* ₹${booking.finalTotal.toLocaleString('en-IN')}\n` +
+      advanceInfo +
+      `*Payment Status:* ${statusDisplay}\n\n` +
       `Thank you for choosing ShreeSakhi for your special occasion! ✨`
     );
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
@@ -263,23 +278,46 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
                     </td>
                   </tr>
                 )}
+
+                {booking.advanceAmount && booking.advanceAmount > 0 && (
+                  <tr className="bg-amber-50/50 dark:bg-amber-950/20 print:bg-stone-50">
+                    <td className="py-2.5 px-2">
+                      <span className="font-semibold text-amber-900 dark:text-amber-300 print:text-black">
+                        Advance Payment Received
+                      </span>
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400 print:text-stone-500">
+                        Token advance paid at booking
+                      </p>
+                    </td>
+                    <td className="py-2.5 px-2 text-center text-amber-800 dark:text-amber-400">Paid</td>
+                    <td className="py-2.5 px-2 text-right font-bold text-emerald-700 dark:text-emerald-400 print:text-emerald-700">
+                      -₹{Number(booking.advanceAmount).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
           {/* Financial Totals & Settlement Status */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t-2 border-[#EADFC9] dark:border-[#1A3E38] print:border-stone-400">
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               <div className="flex items-center gap-2">
                 <span className="text-[#78716C] dark:text-[#9BB5AF] print:text-stone-600">Payment Status:</span>
                 <span
                   className={`px-2.5 py-0.5 rounded-full font-bold text-[11px] ${
                     booking.paymentStatus === 'CLEARED'
                       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 print:border print:border-emerald-600'
-                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                      : booking.paymentStatus === 'PARTIAL'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 print:border print:border-amber-600'
+                      : 'bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-300'
                   }`}
                 >
-                  {booking.paymentStatus === 'CLEARED' ? 'PAID / CLEARED' : 'PAYMENT PENDING'}
+                  {booking.paymentStatus === 'CLEARED'
+                    ? 'PAID / CLEARED'
+                    : booking.paymentStatus === 'PARTIAL'
+                    ? 'PARTIALLY PAID (ADVANCE)'
+                    : 'PAYMENT PENDING'}
                 </span>
               </div>
               <p className="text-[11px] text-[#78716C] dark:text-[#9BB5AF] print:text-stone-600">
@@ -292,11 +330,23 @@ export function InvoiceModal({ booking, choli, isOpen, onClose }: InvoiceModalPr
 
             <div className="text-right space-y-1 w-full sm:w-auto">
               <span className="text-xs text-[#78716C] dark:text-[#9BB5AF] print:text-stone-600 block">
-                Total Amount
+                Total Order Value
               </span>
               <p className="font-serif text-2xl sm:text-3xl font-bold text-[#084C42] dark:text-[#DFBD76] print:text-[#084C42]">
                 ₹{booking.finalTotal.toLocaleString('en-IN')}
               </p>
+
+              {booking.advanceAmount && booking.advanceAmount > 0 && booking.paymentStatus === 'PARTIAL' && (
+                <div className="pt-1 text-xs space-y-0.5">
+                  <div className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                    Advance Paid: ₹{Number(booking.advanceAmount).toLocaleString('en-IN')}
+                  </div>
+                  <div className="text-sm font-bold text-amber-700 dark:text-amber-400">
+                    Balance Due on Pickup: ₹{Math.max(0, booking.finalTotal - Number(booking.advanceAmount)).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              )}
+
               <span className="text-[10px] text-[#78716C] dark:text-[#9BB5AF] print:text-stone-500 block">
                 (Inclusive of ₹{booking.securityDeposit.toLocaleString('en-IN')} refundable deposit)
               </span>

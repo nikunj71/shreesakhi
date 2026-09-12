@@ -26,7 +26,7 @@ export interface Choli {
   createdAt: string;
 }
 
-export type PaymentStatus = 'PENDING' | 'CLEARED';
+export type PaymentStatus = 'PENDING' | 'CLEARED' | 'PARTIAL';
 export type PaymentMode = 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER';
 export type DepositRefundStatus = 'HOLD' | 'REFUNDED_FULL' | 'DEDUCTED';
 export type BookingStatus = 'CONFIRMED' | 'PICKED_UP' | 'RETURNED' | 'CANCELLED';
@@ -54,6 +54,7 @@ export interface Booking {
   rentAmount: number;
   securityDeposit: number;
   discount: number;
+  advanceAmount?: number; // Advance paid at booking time
   finalTotal: number;
   paymentStatus: PaymentStatus;
   paymentMode: PaymentMode;

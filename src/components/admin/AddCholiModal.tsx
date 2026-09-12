@@ -100,6 +100,19 @@ export function AddCholiModal({ isOpen, onClose, choliToEdit }: AddCholiModalPro
     onClose();
   };
 
+  // Handle ESC key press to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   // Block if not Admin
@@ -251,50 +264,52 @@ export function AddCholiModal({ isOpen, onClose, choliToEdit }: AddCholiModalPro
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden"
       onClick={handleClose}
     >
       <div 
-        className="relative w-full max-w-3xl bg-white dark:bg-[#072622] rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden my-6"
+        className="relative w-full max-w-3xl bg-white dark:bg-[#072622] rounded-2xl sm:rounded-3xl border border-[#EADFC9] dark:border-[#1A3E38] shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh] my-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] p-5 sm:p-6 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-[#DFBD76]/20 border border-[#DFBD76]/40 flex items-center justify-center text-[#DFBD76]">
-              {isEdit ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-serif text-lg sm:text-xl font-bold">
-                  {isEdit ? 'Edit Choli Details' : 'Catalog New Choli (Multi-Photo)'}
-                </h2>
-                {isEdit && (
-                  <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-[#DFBD76]/30 border border-[#DFBD76]/50 text-[#DFBD76] font-bold">
-                    {sku}
-                  </span>
-                )}
+        <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
+          
+          {/* Sticky Modal Top Header (Always visible and pinned) */}
+          <div className="flex-shrink-0 bg-gradient-to-r from-[#032620] via-[#084C42] to-[#0D5C51] px-4 py-3.5 sm:px-6 sm:py-4 text-white flex items-center justify-between border-b border-white/10 shadow-sm">
+            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#DFBD76]/20 border border-[#DFBD76]/40 flex items-center justify-center text-[#DFBD76] flex-shrink-0">
+                {isEdit ? <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5" />}
               </div>
-              <p className="text-[11px] text-[#E0E7E5]">
-                {isEdit 
-                  ? 'Update photos, sizing specifications, status, and confidential costing'
-                  : 'Upload local photos via Cloudinary or web URLs, set Instagram link, and configure costing'}
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-serif text-base sm:text-lg font-bold truncate">
+                    {isEdit ? 'Edit Choli Details' : 'Catalog New Choli (Multi-Photo)'}
+                  </h2>
+                  {isEdit && (
+                    <span className="font-mono text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full bg-[#DFBD76]/30 border border-[#DFBD76]/50 text-[#DFBD76] font-bold">
+                      {sku}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-[#E0E7E5] truncate">
+                  {isEdit 
+                    ? 'Update photos, sizing specifications, status, and confidential costing'
+                    : 'Upload local photos via Cloudinary or web URLs, set Instagram link, and configure costing'}
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white transition-all active:scale-90 flex-shrink-0 flex items-center justify-center"
+              title="Close (Esc)"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-90"
-            title="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 text-xs sm:text-sm max-h-[80vh] overflow-y-auto">
+          {/* Form Body - Smooth Scrollable Area */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs sm:text-sm">
           
           {/* Multi-Photo Manager Box */}
           <div className="bg-[#FAF8F5] dark:bg-[#041A17] p-4 rounded-2xl border border-[#EADFC9] dark:border-[#1A3E38] space-y-3">
@@ -630,12 +645,14 @@ export function AddCholiModal({ isOpen, onClose, choliToEdit }: AddCholiModalPro
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-2">
+          </div>
+
+          {/* Sticky Bottom Action Bar (Always visible at bottom) */}
+          <div className="flex-shrink-0 bg-[#FAF8F5] dark:bg-[#041A17] px-4 py-3 sm:px-6 sm:py-3.5 border-t border-[#EADFC9] dark:border-[#1A3E38] flex items-center justify-between gap-3 shadow-inner">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-3 px-4 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] text-[#78716C] dark:text-[#9BB5AF] hover:bg-[#FAF8F5] dark:hover:bg-[#0A2E28] font-semibold transition-all"
+              className="py-2.5 px-4 sm:px-5 rounded-xl border border-[#EADFC9] dark:border-[#1A3E38] text-[#78716C] dark:text-[#9BB5AF] hover:bg-stone-200 dark:hover:bg-[#0A2E28] font-bold text-xs sm:text-sm transition-all"
             >
               Cancel
             </button>
@@ -643,7 +660,7 @@ export function AddCholiModal({ isOpen, onClose, choliToEdit }: AddCholiModalPro
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-2 py-3 px-6 rounded-xl font-bold bg-gradient-to-r from-[#084C42] to-[#0D6357] text-white hover:opacity-95 shadow-lg shadow-[#084C42]/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="py-2.5 px-5 sm:px-6 rounded-xl font-bold bg-gradient-to-r from-[#084C42] to-[#0D6357] text-white hover:opacity-95 shadow-md shadow-[#084C42]/20 transition-all flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
